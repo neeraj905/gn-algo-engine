@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GN Algo Matrix Engine</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0d1117; color: #c9d1d9; margin: 0; padding: 15px; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .btn { width: 48%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .btn-on { background: #238636; color: white; }
+        .btn-off { background: #da3633; color: white; }
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 20px; font-size: 14px; font-weight: bold; }
+        .logs-box { background: #010409; border: 1px solid #21262d; border-radius: 8px; padding: 10px; height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #58a6ff; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align: center; color: #58a6ff;">GN ALGO MATRIX</h2>
+
+    <div class="card" style="text-align: center;">
+        <h3>Master Controls</h3>
+        <p>Engine Status: <span id="engine-status" class="status-badge">FETCHING...</span></p>
+        <button class="btn btn-on" onclick="toggleSystem(true)">AUTO ON</button>
+        <button class="btn btn-off" onclick="toggleSystem(false)">MANUAL OFF</button>
+    </div>
+
+    <div class="card">
+        <h3>Account & Strategy</h3>
+        <p><b>Capital:</b> ₹<span id="capital-val">1000.00</span></p>
+        <p><b>Risk Config:</b> Fixed 2% Initial SL + Trailing Lock</p>
+        <p><b>Execution Mode:</b> Paper Trading (Multi-Demat Ready)</p>
+    </div>
+
+    <div class="card">
+        <h3>Live Event Logs</h3>
+        <div id="logs" class="logs-box">Connecting to engine...</div>
+    </div>
+
+    <script>
+        function updateUI() {
+            fetch('/api/state')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('capital-val').innerText = data.capital.toFixed(2);
+                const statusElem = document.getElementById('engine-status');
+                if (data.master_switch) {
+                    statusElem.innerText = "ACTIVE (AUTO)";
+                    statusElem.style.background = "#238636";
+                } else {
+                    statusElem.innerText = "OFF (MANUAL)";
+                    statusElem.style.background = "#da3633";
+                }
+                const logsBox = document.getElementById('logs');
+                logsBox.innerHTML = data.logs.slice().reverse().join('<br>');
+            });
+        }
+
+        function toggleSystem(status) {
+            fetch('/api/toggle?status=' + status)
+            .then(() => updateUI());
+        }
+
+        setInterval(updateUI, 2000);
+        updateUI();
+    </script>
+</body>
+  </html>
+  
