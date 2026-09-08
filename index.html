@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GN ALGO MATRIX</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0e14; color: #f8fafc; margin: 0; padding: 0; padding-bottom: 70px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0e14; color: #f8fafc; margin: 0; padding: 0; padding-bottom: 90px; }
         .header { background: #111827; padding: 14px; text-align: center; font-size: 16px; font-weight: bold; border-bottom: 1px solid #1f2937; letter-spacing: 0.5px; }
         .tab-content { display: none; padding: 12px; }
         .tab-content.active { display: block; }
@@ -18,7 +18,7 @@
         .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; }
         .btn-green { background: #16a34a; color: #fff; }
         .btn-red { background: #dc2626; color: #fff; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; background: #111827; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #1f2937; z-index: 9999; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #111827; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #1f2937; z-index: 99999; }
         .nav-item { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; }
         .nav-item.active { color: #38bdf8; }
         .log-box { background: #030712; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #38bdf8; height: 100px; overflow-y: auto; border: 1px solid #1f2937; }
@@ -127,8 +127,8 @@
         <div class="nav-item" onclick="switchTab('watchlist', this)">Watchlist</div>
         <div class="nav-item" onclick="switchTab('more', this)">More</div>
     </div>
+
     <script>
-        // Splash screen handler (Tradetron style full load)
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
@@ -180,7 +180,7 @@
                 return;
             }
             paperCapital -= requiredMargin;
-            realizedPnl += 15.50; // Mock profit simulation for testing permanent P&L tracking
+            realizedPnl += 15.50; 
             
             document.getElementById('paper-balance').innerText = '₹' + paperCapital.toFixed(2);
             let pnlEl = document.getElementById('paper-pnl');
@@ -196,4 +196,5 @@
         }
     </script>
 </body>
-</html>
+                </html>
+                
