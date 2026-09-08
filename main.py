@@ -24,7 +24,7 @@ html_content = """
         .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; }
         .btn-green { background: #16a34a; color: #fff; }
         .btn-red { background: #dc2626; color: #fff; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #111827; display: flex; justify-content: space-around; padding: 14px 0 24px 0; border-top: 1px solid #1f2937; z-index: 99999; }
+                .bottom-nav { position: fixed; bottom: 24px; left: 0; width: 100%; background: #111827; display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #1f2937; z-index: 99999; }
         .nav-item { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; }
         .nav-item.active { color: #38bdf8; }
         .log-box { background: #030712; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #38bdf8; height: 100px; overflow-y: auto; border: 1px solid #1f2937; }
