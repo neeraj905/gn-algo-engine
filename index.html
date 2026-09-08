@@ -15,7 +15,7 @@
         .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; text-align: center; }
         .btn-green { background: #16a34a; }
         .btn-red { background: #dc2626; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; background: #1a1d24; display: flex; justify-content: space-around; padding: 12px 0 28px 0; border-top: 1px solid #2d3139; z-index: 9999; }
+                .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; background: #1a1d24; display: flex; justify-content: space-around; padding: 12px 0 calc(28px + env(safe-area-inset-bottom)) 0; border-top: 1px solid #2d3139; z-index: 9999; margin-bottom: 20px !important; }
         .nav-item { color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; padding: 4px 8px; }
         .nav-item.active { color: #38bdf8; font-weight: bold; }
         .log-box { background: #0f172a; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #38bdf8; height: 120px; overflow-y: auto; }
@@ -45,7 +45,7 @@
 
         <div class="card">
             <div class="card-title">Live Event Logs</div>
-            <div class="log-box">[11:50:00] ENGINE ACTIVE: Scanning Nifty, BankNifty & Sensex...</div>
+            <div class="log-box">[12:17:00] ENGINE ACTIVE: Scanning Nifty, BankNifty & Sensex...</div>
         </div>
     </div>
         <!-- TAB 2: WIZARD -->
@@ -103,3 +103,4 @@
     </script>
 </body>
 </html>
+
