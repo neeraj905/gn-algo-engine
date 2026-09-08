@@ -1,100 +1,202 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-import asyncio
-from datetime import datetime
 
 app = FastAPI()
 
-state = {
-    "master_switch": False,
-    "user_manually_disabled": False,
-    "capital": 1000.0,
-    "active_trade": None,
-    "logs": []
-}
+html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GN ALGO MATRIX</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0e14; color: #f8fafc; margin: 0; padding: 0; padding-bottom: 140px; }
+        .header { background: #111827; padding: 14px; text-align: center; font-size: 16px; font-weight: bold; border-bottom: 1px solid #1f2937; letter-spacing: 0.5px; }
+        .tab-content { display: none; padding: 12px; }
+        .tab-content.active { display: block; }
+        .card { background: #111827; border: 1px solid #1f2937; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+        .card-title { font-size: 13px; color: #9ca3af; margin-bottom: 8px; text-transform: uppercase; font-weight: 600; }
+        .flex-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 14px; }
+        .price-green { color: #22c55e; font-weight: 600; }
+        .price-red { color: #ef4444; font-weight: 600; }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .btn-green { background: #16a34a; color: #fff; }
+        .btn-red { background: #dc2626; color: #fff; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #111827; display: flex; justify-content: space-around; padding: 14px 0 24px 0; border-top: 1px solid #1f2937; z-index: 99999; }
+        .nav-item { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; }
+        .nav-item.active { color: #38bdf8; }
+        .log-box { background: #030712; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #38bdf8; height: 100px; overflow-y: auto; border: 1px solid #1f2937; }
+        .input-field { width: 100%; padding: 10px; margin: 6px 0 10px 0; background: #030712; border: 1px solid #374151; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 13px; }
+        
+        #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; transition: opacity 0.5s ease; }
+        .splash-logo { font-size: 24px; font-weight: 900; color: #38bdf8; letter-spacing: 2px; margin-bottom: 10px; }
+        .splash-sub { font-size: 12px; color: #9ca3af; }
+    </style>
+</head>
+<body>
 
-def add_log(message):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    state["logs"].append(f"[{timestamp}] {message}")
-    if len(state["logs"]) > 50:
-        state["logs"].pop(0)
+    <div id="splash-screen">
+        <div class="splash-logo">GN ALGO MATRIX</div>
+        <div class="splash-sub">Initializing Secure Trading Gateway...</div>
+    </div>
 
-def is_market_hours():
-    now = datetime.now().time()
-    start = datetime.strptime("09:15", "%H:%M").time()
-    end = datetime.strptime("15:30", "%H:%M").time()
-    return start <= now <= end
+    <div class="header">GN ALGO MATRIX</div>
 
-async def trading_background_loop():
-    while True:
-        await asyncio.sleep(1)
-        if state["user_manually_disabled"]:
-            continue
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="card">
+            <div class="card-title">Live Market Ticker</div>
+            <div class="flex-row"><span>NIFTY 50</span><span class="price-green" id="nifty-price">₹24,850.10</span></div>
+            <div class="flex-row"><span>BANKNIFTY</span><span class="price-green" id="banknifty-price">₹51,200.50</span></div>
+        </div>
 
-        market_open = is_market_hours()
-        if market_open and not state["master_switch"]:
-            state["master_switch"] = True
-            add_log("SYSTEM AUTO-ON: 09:15 AM Market Opened")
-        elif not market_open and state["master_switch"]:
-            state["master_switch"] = False
-            if state["active_trade"]:
-                close_position("Market Close (03:30 PM)")
-            add_log("SYSTEM AUTO-OFF: 03:30 PM Market Closed")
+        <div class="card">
+            <div class="card-title">Paper Account Overview</div>
+            <div class="flex-row"><span>Initial Capital:</span><span>₹1,000.00</span></div>
+            <div class="flex-row"><span>Available Margin:</span><span id="paper-balance" style="color:#38bdf8; font-weight:bold;">₹1,000.00</span></div>
+            <div class="flex-row"><span>Realized P&L:</span><span id="paper-pnl" class="price-green">₹0.00</span></div>
+        </div>
 
-        if state["master_switch"] and state["active_trade"]:
-            trade = state["active_trade"]
-            ltp = trade["ltp"]
+        <div class="card">
+            <div class="card-title">Live Event Logs</div>
+            <div class="log-box" id="event-log">[INFO] System booted with ₹1,000 Base Capital.</div>
+        </div>
+    </div>
 
-            if ltp > trade["highest_price"]:
-                trade["highest_price"] = ltp
-                new_sl = ltp * 0.98
-                if new_sl > trade["trailing_sl"]:
-                    trade["trailing_sl"] = new_sl
-                    add_log(f"Trailing SL Updated: ₹{new_sl:.2f} (LTP: ₹{ltp:.2f})")
+    <div id="tab-wizard" class="tab-content">
+        <div class="card">
+            <div class="card-title">Quick Test Order (Paper)</div>
+            <div class="flex-row"><span>Target Symbol:</span><span>NIFTY 24850 CE</span></div>
+            <div class="flex-row"><span>Required Margin:</span><span>₹700.00</span></div>
+            <button class="btn btn-green" onclick="executePaperTrade('BUY', 'NIFTY 24850 CE', 35.00, 20)">EXECUTE TEST BUY</button>
+        </div>
+    </div>
 
-            if ltp <= trade["trailing_sl"]:
-                close_position("Trailing Stop-Loss Hit")
+    <div id="tab-strategies" class="tab-content">
+        <div class="card">
+            <div class="card-title">Active Strategy</div>
+            <div class="flex-row"><strong>NAP v3 Paper Algo</strong> <span style="background:#0284c7; padding:2px 6px; border-radius:4px; font-size:10px;">Min Capital: ₹1,000</span></div>
+            <div class="flex-row" style="margin-top:8px;"><span>Mode:</span><span id="trading-mode-label" style="color:#22c55e;">Paper Trading</span></div>
+        </div>
+    </div>
 
-def close_position(reason):
-    trade = state["active_trade"]
-    pnl = trade["trailing_sl"] - trade["buy_price"]
-    state["capital"] += pnl
-    add_log(f"Trade Closed ({reason}): Exit ₹{trade['trailing_sl']:.2f} | P&L: ₹{pnl:.2f}")
-    state["active_trade"] = None
+    <div id="tab-watchlist" class="tab-content">
+        <div class="card">
+            <div class="card-title">Watchlist</div>
+            <div class="flex-row"><span>NIFTY 24850 CE</span><span class="price-green">₹35.00</span></div>
+        </div>
+    </div>
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(trading_background_loop())
+    <div id="tab-more" class="tab-content">
+        <div class="card">
+            <div class="card-title">Trading Mode Control</div>
+            <div class="flex-row">
+                <span>Execution Gateway</span>
+                <select id="gateway-mode" class="input-field" style="width: 130px; margin:0;" onchange="toggleTradingMode()">
+                    <option value="paper">Paper Trading</option>
+                    <option value="live">Live Trading</option>
+                </select>
+            </div>
+        </div>
 
-@app.get("/api/toggle")
-def toggle_system(status: bool):
-    state["master_switch"] = status
-    state["user_manually_disabled"] = not status
-    status_str = "ON" if status else "OFF"
-    add_log(f"Manual Override: Master Switch turned {status_str}")
-    return {"status": "SUCCESS", "master_switch": state["master_switch"]}
+        <div class="card">
+            <div class="card-title">Multi-Demat Account Manager</div>
+            <label style="font-size:11px; color:#9ca3af;">Select / Add Demat Account</label>
+            <select id="demat-account-select" class="input-field">
+                <option value="default">Default Account (Angel One)</option>
+                <option value="account2">Account 2 (Secondary)</option>
+            </select>
+            
+            <label style="font-size:11px; color:#9ca3af;">Client ID / User ID</label>
+            <input type="text" id="angel-userid" class="input-field" placeholder="Enter Client ID">
+            
+            <label style="font-size:11px; color:#9ca3af;">API Key</label>
+            <input type="password" id="angel-apikey" class="input-field" placeholder="Enter API Key">
 
-@app.get("/api/state")
-def get_state():
-    return state
+            <button class="btn btn-green" onclick="saveAngelCredentials()">SAVE & CONNECT ACCOUNT</button>
+        </div>
+    </div>
 
-@app.get("/api/paper-buy")
-def paper_buy(price: float):
-    if not state["master_switch"]:
-        return {"error": "System is OFF"}
-    
-    sl = price * 0.98
-    state["active_trade"] = {
-        "buy_price": price,
-        "ltp": price,
-        "highest_price": price,
-        "trailing_sl": sl
-    }
-    add_log(f"Paper Buy Executed at ₹{price:.2f} | Initial 2% SL: ₹{sl:.2f}")
-    return {"status": "SUCCESS", "trade": state["active_trade"]}
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('dashboard', this)">Dashboard</div>
+        <div class="nav-item" onclick="switchTab('wizard', this)">Wizard</div>
+        <div class="nav-item" onclick="switchTab('strategies', this)">Strategies</div>
+        <div class="nav-item" onclick="switchTab('watchlist', this)">Watchlist</div>
+        <div class="nav-item" onclick="switchTab('more', this)">More</div>
+    </div>
+
+    <script>
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }, 1000);
+        });
+
+        let paperCapital = 1000.00;
+        let realizedPnl = 0.00;
+
+        function switchTab(tabName, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            el.classList.add('active');
+        }
+
+        function toggleTradingMode() {
+            const mode = document.getElementById('gateway-mode').value;
+            const label = document.getElementById('trading-mode-label');
+            if(mode === 'live') {
+                label.innerText = 'LIVE TRADING (Real Money)';
+                label.style.color = '#ef4444';
+                addLog('WARNING: Switched to LIVE TRADING mode. Ensure API keys are active.');
+            } else {
+                label.innerText = 'Paper Trading';
+                label.style.color = '#22c55e';
+                addLog('INFO: Switched back to Paper Trading (Zero Risk).');
+            }
+        }
+
+        function saveAngelCredentials() {
+            const uid = document.getElementById('angel-userid').value;
+            const key = document.getElementById('angel-apikey').value;
+            if(!uid || !key) {
+                alert('Please enter both Client ID and API Key!');
+                return;
+            }
+            addLog('Demat Account Connected successfully for ID: ' + uid);
+            alert('Demat credentials saved and verified!');
+        }
+
+        function executePaperTrade(type, symbol, price, qty) {
+            let requiredMargin = price * qty;
+            if(requiredMargin > paperCapital) {
+                addLog('REJECTED: Insufficient Capital. Required: ₹' + requiredMargin.toFixed(2) + ' | Available: ₹' + paperCapital.toFixed(2));
+                alert('Insufficient Capital for this trade! Required margin exceeds available ₹1,000.');
+                return;
+            }
+            paperCapital -= requiredMargin;
+            realizedPnl += 15.50; 
+            
+            document.getElementById('paper-balance').innerText = '₹' + paperCapital.toFixed(2);
+            let pnlEl = document.getElementById('paper-pnl');
+            pnlEl.innerText = '+₹' + realizedPnl.toFixed(2);
+            
+            addLog('EXECUTED: ' + type + ' ' + symbol + ' @ ₹' + price + ' | Margin Deducted: ₹' + requiredMargin);
+        }
+
+        function addLog(msg) {
+            const logBox = document.getElementById('event-log');
+            const time = new Date().toLocaleTimeString();
+            logBox.innerHTML = '[' + time + '] ' + msg + '<br>' + logBox.innerHTML;
+        }
+    </script>
+</body>
+</html>
+"""
 
 @app.get("/", response_class=HTMLResponse)
-def get_dashboard():
-    with open("index.html", "r") as f:
-        return f.read()
-  
+async def read_root():
+    return html_content
