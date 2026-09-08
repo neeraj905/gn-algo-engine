@@ -26,7 +26,7 @@ html_content = """
         .btn-red { background: #dc2626; color: #fff; }
         
         /* Floating Bottom Navigation Bar to avoid mobile system buttons */
-        .bottom-nav { position: fixed; bottom: 24px; left: 12px; width: calc(100% - 24px); background: #111827; display: flex; justify-content: space-around; padding: 12px 0; border: 1px solid #1f2937; border-radius: 12px; z-index: 99999; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        .bottom-nav { position: fixed; bottom: 50px; left: 12px; width: calc(100% - 24px); background: #111827; display: flex; justify-content: space-around; padding: 12px 0; border: 1px solid #1f2937; border-radius: 12px; z-index: 99999; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
         
         .nav-item { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; }
         .nav-item.active { color: #38bdf8; }
