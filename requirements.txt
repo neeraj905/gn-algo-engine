@@ -1,4 +1,8 @@
 fastapi
 uvicorn
 jinja2
+fastapi
+uvicorn
+pydantic
+httpx
 
