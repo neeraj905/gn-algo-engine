@@ -430,4 +430,3 @@ async def execute_trade(mode: str = "paper"):
         except Exception:
             pass
         await asyncio.sleep(60)
-    
