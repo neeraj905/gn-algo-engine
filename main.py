@@ -8,17 +8,15 @@ app = FastAPI()
 
 ACCOUNTS_FILE = "accounts.json"
 
-# Helper to load accounts from server storage
 def load_server_accounts():
     if not os.path.exists(ACCOUNTS_FILE):
-        # Auto-initialize with your Angel One account details provided
         default_acc = [{
             "id": "angel_one",
             "name": "Angel One",
             "uid": "AABY582302",
             "key": "LrLCrlLs",
             "secret": "OTMWK462LLPIJUPEV6NJYZO35Q",
-            "capital": 10000.00,
+            "capital": 1000.00,
             "pnl": 0.00,
             "enabled": True
         }]
@@ -30,7 +28,6 @@ def load_server_accounts():
     except:
         return []
 
-# Helper to save accounts to server storage
 def save_server_accounts(accounts):
     with open(ACCOUNTS_FILE, "w") as f:
         json.dump(accounts, f, indent=4)
@@ -41,7 +38,7 @@ class AccountModel(BaseModel):
     uid: str
     key: str
     secret: str
-    capital: float = 10000.00
+    capital: float = 1000.00
     pnl: float = 0.00
     enabled: bool = True
 
@@ -72,7 +69,6 @@ html_content = """
         .log-box { background: #030712; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #38bdf8; height: 100px; overflow-y: auto; border: 1px solid #1f2937; }
         .input-field { width: 100%; padding: 10px; margin: 6px 0 10px 0; background: #030712; border: 1px solid #374151; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 13px; }
         
-        /* Toggle Switch */
         .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .3s; border-radius: 22px; }
@@ -101,7 +97,7 @@ html_content = """
             <div class="flex-row"><span>BANKNIFTY</span><span class="price-green">₹51,200.50</span></div>
         </div>
 
-        <!-- Dynamic Server-Backed Account Cards -->
+        <!-- Saare accounts ke live cards yahan ek sath dikhenge -->
         <div id="account-cards-container"></div>
 
         <div class="card">
@@ -149,7 +145,7 @@ html_content = """
             <input type="password" id="acc-secret" class="input-field" placeholder="Enter Secret Key or MPIN">
 
             <label style="font-size:11px; color:#9ca3af;">Base Capital (₹)</label>
-            <input type="number" id="acc-capital" class="input-field" value="10000" placeholder="Initial Capital">
+            <input type="number" id="acc-capital" class="input-field" value="1000" placeholder="Initial Capital">
 
             <button class="btn btn-green" onclick="addNewAccount()">SAVE ACCOUNT TO SERVER</button>
         </div>
@@ -200,7 +196,7 @@ html_content = """
             let uid = document.getElementById('acc-uid').value.trim();
             let key = document.getElementById('acc-key').value.trim();
             let secret = document.getElementById('acc-secret').value.trim();
-            let capital = parseFloat(document.getElementById('acc-capital').value) || 10000.00;
+            let capital = parseFloat(document.getElementById('acc-capital').value) || 1000.00;
 
             if(!rawName || !uid || !key || !secret) {
                 alert('Please fill all required fields!');
@@ -276,7 +272,7 @@ html_content = """
                 let pnlClass = acc.pnl >= 0 ? 'price-green' : 'price-red';
                 let pnlDisplay = (acc.pnl >= 0 ? '+₹' : '-₹') + Math.abs(acc.pnl).toFixed(2);
 
-                // Dashboard Card
+                // Dashboard Card (Yahan aapko saare accounts ke alag-alag cards line se dikhenge)
                 let dCard = document.createElement('div');
                 dCard.className = 'card';
                 dCard.innerHTML = `
@@ -368,8 +364,9 @@ async def execute_trade():
     
     count = 0
     for acc in active_accs:
-        acc["pnl"] += 155.00  # Simulating profit update per account
+        acc["pnl"] += 155.00
         count += 1
         
     save_server_accounts(accounts)
     return {"message": f"Successfully executed trade across {count} active server account(s)."}
+        
