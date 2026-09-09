@@ -419,7 +419,7 @@ async def execute_trade(mode: str = "paper"):
     return {"message": f"[{mode_text}] Successfully executed across {count} active server account(s)."}  
     async def automated_trading_loop():
         async def automated_trading_loop():
-    await asyncio.sleep(15)
+        await asyncio.sleep(15)
     while True:
         try:
             accounts = load_server_accounts()
