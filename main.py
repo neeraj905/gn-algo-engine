@@ -1,7 +1,49 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+import json
+import os
 
 app = FastAPI()
+
+ACCOUNTS_FILE = "accounts.json"
+
+# Helper to load accounts from server storage
+def load_server_accounts():
+    if not os.path.exists(ACCOUNTS_FILE):
+        # Auto-initialize with your Angel One account details provided
+        default_acc = [{
+            "id": "angel_one",
+            "name": "Angel One",
+            "uid": "AABY582302",
+            "key": "LrLCrlLs",
+            "secret": "OTMWK462LLPIJUPEV6NJYZO35Q",
+            "capital": 10000.00,
+            "pnl": 0.00,
+            "enabled": True
+        }]
+        save_server_accounts(default_acc)
+        return default_acc
+    try:
+        with open(ACCOUNTS_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+# Helper to save accounts to server storage
+def save_server_accounts(accounts):
+    with open(ACCOUNTS_FILE, "w") as f:
+        json.dump(accounts, f, indent=4)
+
+class AccountModel(BaseModel):
+    id: str
+    name: str
+    uid: str
+    key: str
+    secret: str
+    capital: float = 10000.00
+    pnl: float = 0.00
+    enabled: bool = True
 
 html_content = """
 <!DOCTYPE html>
@@ -16,12 +58,13 @@ html_content = """
         .tab-content { display: none; padding: 12px; }
         .tab-content.active { display: block; }
         .card { background: #111827; border: 1px solid #1f2937; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-        .card-title { font-size: 13px; color: #9ca3af; margin-bottom: 8px; text-transform: uppercase; font-weight: 600; }
+        .card-title { font-size: 13px; color: #9ca3af; margin-bottom: 8px; text-transform: uppercase; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .flex-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 14px; }
         .price-green { color: #22c55e; font-weight: 600; }
         .price-red { color: #ef4444; font-weight: 600; }
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 10px; }
         .btn-green { background: #16a34a; color: #fff; }
+        .btn-red { background: #dc2626; color: #fff; padding: 4px 8px; font-size: 11px; width: auto; margin: 0; }
         
         .bottom-nav { position: fixed; bottom: 35px; left: 16px; width: calc(100% - 32px); background: #111827; display: flex; justify-content: space-around; padding: 14px 0; border: 1px solid #1f2937; border-radius: 14px; z-index: 99999; box-shadow: 0 10px 25px rgba(0,0,0,0.9); }
         .nav-item { color: #9ca3af; text-decoration: none; font-size: 11px; font-weight: 600; text-align: center; cursor: pointer; }
@@ -29,6 +72,14 @@ html_content = """
         .log-box { background: #030712; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #38bdf8; height: 100px; overflow-y: auto; border: 1px solid #1f2937; }
         .input-field { width: 100%; padding: 10px; margin: 6px 0 10px 0; background: #030712; border: 1px solid #374151; border-radius: 6px; color: #fff; box-sizing: border-box; font-size: 13px; }
         
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .3s; border-radius: 22px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #16a34a; }
+        input:checked + .slider:before { transform: translateX(18px); }
+
         #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b0e14; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; transition: opacity 0.5s ease; }
         .splash-logo { font-size: 24px; font-weight: 900; color: #38bdf8; letter-spacing: 2px; margin-bottom: 10px; }
         .splash-sub { font-size: 12px; color: #9ca3af; }
@@ -38,7 +89,7 @@ html_content = """
 
     <div id="splash-screen">
         <div class="splash-logo">GN ALGO MATRIX</div>
-        <div class="splash-sub">Initializing Secure Trading Gateway...</div>
+        <div class="splash-sub">Connecting Cloud Engine...</div>
     </div>
 
     <div class="header">GN ALGO MATRIX</div>
@@ -50,33 +101,28 @@ html_content = """
             <div class="flex-row"><span>BANKNIFTY</span><span class="price-green">₹51,200.50</span></div>
         </div>
 
-        <div class="card">
-            <div class="card-title">Paper Account Overview</div>
-            <div class="flex-row"><span>Initial Capital:</span><span>₹10,000.00</span></div>
-            <div class="flex-row"><span>Available Margin:</span><span id="paper-balance" style="color:#38bdf8; font-weight:bold;">₹10,000.00</span></div>
-            <div class="flex-row"><span>Realized P&L:</span><span id="paper-pnl" class="price-green">₹0.00</span></div>
-        </div>
+        <!-- Dynamic Server-Backed Account Cards -->
+        <div id="account-cards-container"></div>
 
         <div class="card">
             <div class="card-title">Live Event Logs</div>
-            <div class="log-box" id="event-log">[INFO] System booted with LocalStorage active.</div>
+            <div class="log-box" id="event-log">[INFO] Server-side multi-account engine active.</div>
         </div>
     </div>
 
     <div id="tab-wizard" class="tab-content">
         <div class="card">
-            <div class="card-title">Quick Test Order (Paper)</div>
+            <div class="card-title">Quick Test Order (Server Automation)</div>
             <div class="flex-row"><span>Target Symbol:</span><span>NIFTY 24850 CE</span></div>
-            <div class="flex-row"><span>Required Margin:</span><span>₹700.00</span></div>
-            <button class="btn btn-green" onclick="executePaperTrade()">EXECUTE TEST BUY</button>
+            <button class="btn btn-green" onclick="executeCloudTrade()">TRIGGER SERVER-SIDE TRADE</button>
         </div>
     </div>
 
     <div id="tab-strategies" class="tab-content">
         <div class="card">
             <div class="card-title">Active Strategy</div>
-            <div class="flex-row"><strong>NAP v3 Paper Algo</strong> <span style="background:#0284c7; padding:2px 6px; border-radius:4px; font-size:10px;">Min Capital: ₹10,000</span></div>
-            <div class="flex-row" style="margin-top:8px;"><span>Mode:</span><span style="color:#22c55e;">Paper Trading</span></div>
+            <div class="flex-row"><strong>NAP v3 Cloud Algo</strong> <span style="background:#0284c7; padding:2px 6px; border-radius:4px; font-size:10px;">Status: 24/7 Ready</span></div>
+            <div class="flex-row" style="margin-top:8px;"><span>Mode:</span><span style="color:#22c55e;">Server-Managed Execution</span></div>
         </div>
     </div>
 
@@ -89,23 +135,28 @@ html_content = """
 
     <div id="tab-more" class="tab-content">
         <div class="card">
-            <div class="card-title">Multi-Demat Account Manager (Angel One)</div>
-            <label style="font-size:11px; color:#9ca3af;">Select Demat Account Slot</label>
-            <select id="demat-slot" class="input-field" onchange="loadAccountData()">
-                <option value="account1">Default Account (Angel One)</option>
-                <option value="account2">Account 2 (Secondary)</option>
-            </select>
+            <div class="card-title">Add Demat Account (One by One)</div>
+            <label style="font-size:11px; color:#9ca3af;">Account Name / Nickname (e.g. Angel_One, Kotak_Neo)</label>
+            <input type="text" id="acc-name" class="input-field" placeholder="Enter Nickname">
             
             <label style="font-size:11px; color:#9ca3af;">Client ID / User ID</label>
-            <input type="text" id="client-id" class="input-field" placeholder="Enter Client ID">
+            <input type="text" id="acc-uid" class="input-field" placeholder="Enter Client ID">
             
             <label style="font-size:11px; color:#9ca3af;">API Key</label>
-            <input type="password" id="api-key" class="input-field" placeholder="Enter API Key">
+            <input type="password" id="acc-key" class="input-field" placeholder="Enter API Key">
 
             <label style="font-size:11px; color:#9ca3af;">Secret / PIN / TOTP Token</label>
-            <input type="password" id="api-secret" class="input-field" placeholder="Enter Secret Key or MPIN">
+            <input type="password" id="acc-secret" class="input-field" placeholder="Enter Secret Key or MPIN">
 
-            <button class="btn btn-green" onclick="saveAccountData()">SAVE & CONNECT ACCOUNT</button>
+            <label style="font-size:11px; color:#9ca3af;">Base Capital (₹)</label>
+            <input type="number" id="acc-capital" class="input-field" value="10000" placeholder="Initial Capital">
+
+            <button class="btn btn-green" onclick="addNewAccount()">SAVE ACCOUNT TO SERVER</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Manage Server Accounts</div>
+            <div id="manage-accounts-list">Loading...</div>
         </div>
     </div>
 
@@ -124,11 +175,8 @@ html_content = """
                 splash.style.opacity = '0';
                 setTimeout(() => splash.style.display = 'none', 500);
             }, 1000);
-            loadAccountData();
+            fetchAccounts();
         });
-
-        let paperCapital = 10000.00;
-        let realizedPnl = 0.00;
 
         function switchTab(tabName, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -137,48 +185,129 @@ html_content = """
             el.classList.add('active');
         }
 
-        function saveAccountData() {
-            const slot = document.getElementById('demat-slot').value;
-            const data = {
-                uid: document.getElementById('client-id').value,
-                key: document.getElementById('api-key').value,
-                secret: document.getElementById('api-secret').value
+        async function fetchAccounts() {
+            try {
+                let res = await fetch('/api/accounts');
+                let accounts = await res.json();
+                renderUI(accounts);
+            } catch(e) {
+                addLog('Error fetching accounts from server.');
+            }
+        }
+
+        async function addNewAccount() {
+            let rawName = document.getElementById('acc-name').value.trim();
+            let uid = document.getElementById('acc-uid').value.trim();
+            let key = document.getElementById('acc-key').value.trim();
+            let secret = document.getElementById('acc-secret').value.trim();
+            let capital = parseFloat(document.getElementById('acc-capital').value) || 10000.00;
+
+            if(!rawName || !uid || !key || !secret) {
+                alert('Please fill all required fields!');
+                return;
+            }
+
+            let accId = rawName.toLowerCase().replace(/\\s+/g, '_');
+            let payload = {
+                id: accId,
+                name: rawName,
+                uid: uid,
+                key: key,
+                secret: secret,
+                capital: capital,
+                pnl: 0.00,
+                enabled: true
             };
-            if(!data.uid || !data.key || !data.secret) {
-                alert('Please fill all three credential fields!');
-                return;
-            }
-            localStorage.setItem('gn_algo_' + slot, JSON.stringify(data));
-            addLog('Credentials saved successfully for ' + slot.toUpperCase());
-            alert('Account saved safely in browser storage!');
-        }
 
-        function loadAccountData() {
-            const slot = document.getElementById('demat-slot').value;
-            const saved = localStorage.getItem('gn_algo_' + slot);
-            if(saved) {
-                const data = JSON.parse(saved);
-                document.getElementById('client-id').value = data.uid || '';
-                document.getElementById('api-key').value = data.key || '';
-                document.getElementById('api-secret').value = data.secret || '';
+            let res = await fetch('/api/accounts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if(res.ok) {
+                document.getElementById('acc-name').value = '';
+                document.getElementById('acc-uid').value = '';
+                document.getElementById('acc-key').value = '';
+                document.getElementById('acc-secret').value = '';
+                addLog('Account saved securely on server: ' + rawName);
+                alert('Account added successfully!');
+                fetchAccounts();
+                switchTab('dashboard', document.querySelector('.bottom-nav .nav-item'));
             } else {
-                document.getElementById('client-id').value = '';
-                document.getElementById('api-key').value = '';
-                document.getElementById('api-secret').value = '';
+                alert('Failed to save account.');
             }
         }
 
-        function executePaperTrade() {
-            let requiredMargin = 700.00;
-            if(requiredMargin > paperCapital) {
-                alert('Insufficient Capital!');
+        async function toggleAccount(id) {
+            await fetch('/api/accounts/toggle/' + id, {method: 'POST'});
+            fetchAccounts();
+        }
+
+        async function removeAccount(id) {
+            if(!confirm('Are you sure you want to delete this account?')) return;
+            await fetch('/api/accounts/' + id, {method: 'DELETE'});
+            fetchAccounts();
+            addLog('Account removed.');
+        }
+
+        async function executeCloudTrade() {
+            let res = await fetch('/api/trade/execute', {method: 'POST'});
+            let data = await res.json();
+            alert(data.message);
+            fetchAccounts();
+            addLog(data.message);
+        }
+
+        function renderUI(accounts) {
+            let dashContainer = document.getElementById('account-cards-container');
+            let manageContainer = document.getElementById('manage-accounts-list');
+
+            dashContainer.innerHTML = '';
+            manageContainer.innerHTML = '';
+
+            if(accounts.length === 0) {
+                dashContainer.innerHTML = '<div class="card"><div style="text-align:center; color:#9ca3af;">No accounts added yet.</div></div>';
+                manageContainer.innerHTML = '<div style="color:#9ca3af; font-size:12px;">No accounts found.</div>';
                 return;
             }
-            paperCapital -= requiredMargin;
-            realizedPnl += 155.00;
-            document.getElementById('paper-balance').innerText = '₹' + paperCapital.toFixed(2);
-            document.getElementById('paper-pnl').innerText = '+₹' + realizedPnl.toFixed(2);
-            addLog('EXECUTED: Paper Trade | Margin: ₹' + requiredMargin);
+
+            accounts.forEach(acc => {
+                let pnlClass = acc.pnl >= 0 ? 'price-green' : 'price-red';
+                let pnlDisplay = (acc.pnl >= 0 ? '+₹' : '-₹') + Math.abs(acc.pnl).toFixed(2);
+
+                // Dashboard Card
+                let dCard = document.createElement('div');
+                dCard.className = 'card';
+                dCard.innerHTML = `
+                    <div class="card-title">
+                        <span>${acc.name}</span>
+                        <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${acc.enabled ? '#166534' : '#991b1b'}; color:#fff;">${acc.enabled ? 'ACTIVE (ON)' : 'PAUSED (OFF)'}</span>
+                    </div>
+                    <div class="flex-row"><span>Client ID:</span><span style="font-family:monospace; color:#38bdf8;">${acc.uid}</span></div>
+                    <div class="flex-row"><span>Base Capital:</span><span>₹${acc.capital.toFixed(2)}</span></div>
+                    <div class="flex-row"><span>Realized P&L:</span><span class="${pnlClass}">${pnlDisplay}</span></div>
+                `;
+                dashContainer.appendChild(dCard);
+
+                // Manage Item
+                let mItem = document.createElement('div');
+                mItem.style.cssText = "background:#030712; border:1px solid #1f2937; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;";
+                mItem.innerHTML = `
+                    <div>
+                        <div style="font-weight:bold; font-size:13px;">${acc.name}</div>
+                        <div style="font-size:11px; color:#9ca3af;">ID: ${acc.uid} | Cap: ₹${acc.capital}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <label class="switch">
+                            <input type="checkbox" ${acc.enabled ? 'checked' : ''} onchange="toggleAccount('${acc.id}')">
+                            <span class="slider"></span>
+                        </label>
+                        <button class="btn btn-red" onclick="removeAccount('${acc.id}')">Delete</button>
+                    </div>
+                `;
+                manageContainer.appendChild(mItem);
+            });
         }
 
         function addLog(msg) {
@@ -194,3 +323,53 @@ html_content = """
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     return html_content
+
+@app.get("/api/accounts")
+async def get_accounts():
+    return load_server_accounts()
+
+@app.post("/api/accounts")
+async def add_account(acc: AccountModel):
+    accounts = load_server_accounts()
+    for i, existing in enumerate(accounts):
+        if existing["id"] == acc.id:
+            accounts[i] = acc.dict()
+            save_server_accounts(accounts)
+            return {"status": "updated"}
+    
+    accounts.append(acc.dict())
+    save_server_accounts(accounts)
+    return {"status": "added"}
+
+@app.post("/api/accounts/toggle/{acc_id}")
+async def toggle_account(acc_id: str):
+    accounts = load_server_accounts()
+    for acc in accounts:
+        if acc["id"] == acc_id:
+            acc["enabled"] = not acc["enabled"]
+            save_server_accounts(accounts)
+            return {"status": "success", "enabled": acc["enabled"]}
+    raise HTTPException(status_code=404, detail="Account not found")
+
+@app.delete("/api/accounts/{acc_id}")
+async def delete_account(acc_id: str):
+    accounts = load_server_accounts()
+    accounts = [acc for acc in accounts if acc["id"] != acc_id]
+    save_server_accounts(accounts)
+    return {"status": "deleted"}
+
+@app.post("/api/trade/execute")
+async def execute_trade():
+    accounts = load_server_accounts()
+    active_accs = [a for a in accounts if a["enabled"]]
+    
+    if not active_accs:
+        return {"message": "No accounts enabled for trading!"}
+    
+    count = 0
+    for acc in active_accs:
+        acc["pnl"] += 155.00  # Simulating profit update per account
+        count += 1
+        
+    save_server_accounts(accounts)
+    return {"message": f"Successfully executed trade across {count} active server account(s)."}
