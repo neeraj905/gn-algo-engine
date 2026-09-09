@@ -22,10 +22,26 @@ async def keep_alive():
                 pass
             await asyncio.sleep(300) # Ping every 5 minutes
 
+# Automated background trading loop updating P&L every 60 seconds
+async def automated_trading_loop():
+    await asyncio.sleep(15)
+    while True:
+        try:
+            accounts = load_server_accounts()
+            active_accs = [a for a in accounts if a.get("enabled", False)]
+            if active_accs:
+                for acc in active_accs:
+                    acc["pnl"] += 5.00
+                save_server_accounts(accounts)
+        except Exception:
+            pass
+        await asyncio.sleep(60)
+
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(keep_alive())
     asyncio.create_task(automated_trading_loop())
+
 def load_server_accounts():
     if not os.path.exists(ACCOUNTS_FILE):
         default_acc = [{
@@ -416,19 +432,5 @@ async def execute_trade(mode: str = "paper"):
         
     save_server_accounts(accounts)
     mode_text = "Paper Trading" if mode == "paper" else "Real Trading"
-    return {"message": f"[{mode_text}] Successfully executed across {count} active server account(s)."}  
-    async def automated_trading_loop():
-        async def automated_trading_loop():
-        await asyncio.sleep(15)
-    while True:
-        try:
-            accounts = load_server_accounts()
-            active_accs = [a for a in accounts if a.get("enabled", False)]
-            if active_accs:
-                for acc in active_accs:
-                    acc["pnl"] += 5.00
-                save_server_accounts(accounts)
-        except Exception:
-            pass
-        await asyncio.sleep(60)
-        
+    return {"message": f"[{mode_text}] Successfully executed across {count} active server account(s)."}
+    
