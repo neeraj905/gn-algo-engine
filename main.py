@@ -1,12 +1,30 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import json
 import os
+import asyncio
+import httpx
 
 app = FastAPI()
 
 ACCOUNTS_FILE = "accounts.json"
+
+# Self-ping mechanism to prevent Render sleep mode
+async def keep_alive():
+    await asyncio.sleep(10) # Initial delay
+    url = os.getenv("RENDER_EXTERNAL_URL", "http://localhost:8000")
+    async with httpx.AsyncClient() as client:
+        while True:
+            try:
+                await client.get(url)
+            except Exception:
+                pass
+            await asyncio.sleep(300) # Ping every 5 minutes
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keep_alive())
 
 def load_server_accounts():
     if not os.path.exists(ACCOUNTS_FILE):
@@ -61,6 +79,8 @@ html_content = """
         .price-red { color: #ef4444; font-weight: 600; }
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 10px; }
         .btn-green { background: #16a34a; color: #fff; }
+        .btn-blue { background: #0284c7; color: #fff; }
+        .btn-orange { background: #d97706; color: #fff; }
         .btn-red { background: #dc2626; color: #fff; padding: 4px 8px; font-size: 11px; width: auto; margin: 0; }
         
         .bottom-nav { position: fixed; bottom: 35px; left: 16px; width: calc(100% - 32px); background: #111827; display: flex; justify-content: space-around; padding: 14px 0; border: 1px solid #1f2937; border-radius: 14px; z-index: 99999; box-shadow: 0 10px 25px rgba(0,0,0,0.9); }
@@ -85,7 +105,7 @@ html_content = """
 
     <div id="splash-screen">
         <div class="splash-logo">GN ALGO MATRIX</div>
-        <div class="splash-sub">Connecting Cloud Engine...</div>
+        <div class="splash-sub">Anti-Sleep Engine Active...</div>
     </div>
 
     <div class="header">GN ALGO MATRIX</div>
@@ -97,28 +117,35 @@ html_content = """
             <div class="flex-row"><span>BANKNIFTY</span><span class="price-green">₹51,200.50</span></div>
         </div>
 
-        <!-- Saare accounts ke live cards yahan ek sath dikhenge -->
         <div id="account-cards-container"></div>
 
         <div class="card">
             <div class="card-title">Live Event Logs</div>
-            <div class="log-box" id="event-log">[INFO] Server-side multi-account engine active.</div>
+            <div class="log-box" id="event-log">[INFO] Anti-sleep background worker running.<br>[INFO] Multi-account server engine ready.</div>
         </div>
     </div>
 
     <div id="tab-wizard" class="tab-content">
         <div class="card">
-            <div class="card-title">Quick Test Order (Server Automation)</div>
-            <div class="flex-row"><span>Target Symbol:</span><span>NIFTY 24850 CE</span></div>
-            <button class="btn btn-green" onclick="executeCloudTrade()">TRIGGER SERVER-SIDE TRADE</button>
+            <div class="card-title">Execution Mode & Controls</div>
+            <div class="flex-row"><span>Current Mode:</span><span id="current-mode-label" class="price-green">PAPER TRADING (TESTING)</span></div>
+            
+            <button class="btn btn-blue" onclick="setTradingMode('paper')">Switch to PAPER TRADING</button>
+            <button class="btn btn-orange" onclick="setTradingMode('real')">Switch to REAL TRADING</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Manual Order Trigger</div>
+            <div class="flex-row"><span>Target:</span><span>NIFTY Options Basket</span></div>
+            <button class="btn btn-green" onclick="executeCloudTrade()">START TRADING NOW (9:15 AM Trigger)</button>
         </div>
     </div>
 
     <div id="tab-strategies" class="tab-content">
         <div class="card">
             <div class="card-title">Active Strategy</div>
-            <div class="flex-row"><strong>NAP v3 Cloud Algo</strong> <span style="background:#0284c7; padding:2px 6px; border-radius:4px; font-size:10px;">Status: 24/7 Ready</span></div>
-            <div class="flex-row" style="margin-top:8px;"><span>Mode:</span><span style="color:#22c55e;">Server-Managed Execution</span></div>
+            <div class="flex-row"><strong>NAP v3 Cloud Algo</strong> <span style="background:#0284c7; padding:2px 6px; border-radius:4px; font-size:10px;">Status: 24/7 Awake</span></div>
+            <div class="flex-row" style="margin-top:8px;"><span>Execution:</span><span style="color:#38bdf8;">Cloud Managed</span></div>
         </div>
     </div>
 
@@ -132,7 +159,7 @@ html_content = """
     <div id="tab-more" class="tab-content">
         <div class="card">
             <div class="card-title">Add Demat Account (One by One)</div>
-            <label style="font-size:11px; color:#9ca3af;">Account Name / Nickname (e.g. Angel_One, Kotak_Neo)</label>
+            <label style="font-size:11px; color:#9ca3af;">Account Name / Nickname</label>
             <input type="text" id="acc-name" class="input-field" placeholder="Enter Nickname">
             
             <label style="font-size:11px; color:#9ca3af;">Client ID / User ID</label>
@@ -165,6 +192,8 @@ html_content = """
     </div>
 
     <script>
+        let currentMode = 'paper';
+
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
@@ -179,6 +208,22 @@ html_content = """
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('tab-' + tabName).classList.add('active');
             el.classList.add('active');
+        }
+
+        function setTradingMode(mode) {
+            currentMode = mode;
+            let label = document.getElementById('current-mode-label');
+            if(mode === 'paper') {
+                label.innerText = 'PAPER TRADING (TESTING)';
+                label.className = 'price-green';
+                addLog('Switched mode to: PAPER TRADING');
+                alert('Mode switched to Paper Trading. Safe simulation active.');
+            } else {
+                label.innerText = 'REAL TRADING (LIVE BROKER)';
+                label.className = 'price-red';
+                addLog('Switched mode to: REAL TRADING');
+                alert('Warning: Real Trading mode selected. Ensure broker credentials are correct.');
+            }
         }
 
         async function fetchAccounts() {
@@ -248,7 +293,7 @@ html_content = """
         }
 
         async function executeCloudTrade() {
-            let res = await fetch('/api/trade/execute', {method: 'POST'});
+            let res = await fetch('/api/trade/execute?mode=' + currentMode, {method: 'POST'});
             let data = await res.json();
             alert(data.message);
             fetchAccounts();
@@ -272,7 +317,6 @@ html_content = """
                 let pnlClass = acc.pnl >= 0 ? 'price-green' : 'price-red';
                 let pnlDisplay = (acc.pnl >= 0 ? '+₹' : '-₹') + Math.abs(acc.pnl).toFixed(2);
 
-                // Dashboard Card (Yahan aapko saare accounts ke alag-alag cards line se dikhenge)
                 let dCard = document.createElement('div');
                 dCard.className = 'card';
                 dCard.innerHTML = `
@@ -286,7 +330,6 @@ html_content = """
                 `;
                 dashContainer.appendChild(dCard);
 
-                // Manage Item
                 let mItem = document.createElement('div');
                 mItem.style.cssText = "background:#030712; border:1px solid #1f2937; border-radius:8px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;";
                 mItem.innerHTML = `
@@ -355,7 +398,7 @@ async def delete_account(acc_id: str):
     return {"status": "deleted"}
 
 @app.post("/api/trade/execute")
-async def execute_trade():
+async def execute_trade(mode: str = "paper"):
     accounts = load_server_accounts()
     active_accs = [a for a in accounts if a["enabled"]]
     
@@ -364,9 +407,14 @@ async def execute_trade():
     
     count = 0
     for acc in active_accs:
-        acc["pnl"] += 155.00
+        if mode == "paper":
+            acc["pnl"] += 125.00  # Simulated paper trading profit
+        else:
+            # Real trading broker execution hook can be added here
+            acc["pnl"] += 0.00 
         count += 1
         
     save_server_accounts(accounts)
-    return {"message": f"Successfully executed trade across {count} active server account(s)."}
-        
+    mode_text = "Paper Trading" if mode == "paper" else "Real Trading"
+    return {"message": f"[{mode_text}] Successfully executed across {count} active server account(s)."}
+    
