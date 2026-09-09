@@ -416,20 +416,17 @@ async def execute_trade(mode: str = "paper"):
         
     save_server_accounts(accounts)
     mode_text = "Paper Trading" if mode == "paper" else "Real Trading"
-    return {"message": f"[{mode_text}] Successfully executed across {count} active server account(s)."}
+    return {"message": f"[{mode_text}] Successfully executed across {count} active server account(s)."}  
     async def automated_trading_loop():
-    await asyncio.sleep(15) # Server start hone ke 15 seconds baad shuru ho
+    await asyncio.sleep(15)
     while True:
         try:
             accounts = load_server_accounts()
-            active_accs = [a for a in accounts if a["enabled"]]
-            
+            active_accs = [a for a in accounts if a.get("enabled", False)]
             if active_accs:
                 for acc in active_accs:
-                    acc["pnl"] += 5.00  # Automatically background mein profit tick karega
+                    acc["pnl"] += 5.00
                 save_server_accounts(accounts)
         except Exception:
             pass
-        
-        await asyncio.sleep(60) # Har 60 seconds mein update karega
-
+        await asyncio.sleep(60)
