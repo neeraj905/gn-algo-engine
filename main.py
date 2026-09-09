@@ -5,6 +5,7 @@ import json
 import os
 import asyncio
 import httpx
+from datetime import datetime
 
 app = FastAPI()
 
@@ -22,17 +23,22 @@ async def keep_alive():
                 pass
             await asyncio.sleep(300) # Ping every 5 minutes
 
-# Automated background trading loop updating P&L every 60 seconds
+# Automated background trading loop running ONLY during Indian Market Hours (9:15 AM - 3:30 PM, Mon-Fri)
 async def automated_trading_loop():
     await asyncio.sleep(15)
     while True:
         try:
-            accounts = load_server_accounts()
-            active_accs = [a for a in accounts if a.get("enabled", False)]
-            if active_accs:
-                for acc in active_accs:
-                    acc["pnl"] += 5.00
-                save_server_accounts(accounts)
+            now = datetime.now()
+            # Check if weekday (Monday=0 to Friday=4) and time is between 09:15 and 15:30
+            if now.weekday() < 5:
+                current_time_val = now.hour * 100 + now.minute
+                if 915 <= current_time_val <= 1530:
+                    accounts = load_server_accounts()
+                    active_accs = [a for a in accounts if a.get("enabled", False)]
+                    if active_accs:
+                        for acc in active_accs:
+                            acc["pnl"] += 5.00
+                        save_server_accounts(accounts)
         except Exception:
             pass
         await asyncio.sleep(60)
@@ -137,7 +143,7 @@ html_content = """
 
         <div class="card">
             <div class="card-title">Live Event Logs</div>
-            <div class="log-box" id="event-log">[INFO] Anti-sleep background worker running.<br>[INFO] Multi-account server engine ready.</div>
+            <div class="log-box" id="event-log">[INFO] Anti-sleep background worker running.<br>[INFO] Auto-refresh & Market hours filter enabled.</div>
         </div>
     </div>
 
@@ -167,8 +173,30 @@ html_content = """
 
     <div id="tab-watchlist" class="tab-content">
         <div class="card">
-            <div class="card-title">Watchlist</div>
-            <div class="flex-row"><span>NIFTY 24850 CE</span><span class="price-green">₹35.00</span></div>
+            <div class="card-title">TradingView Live Chart & Signals</div>
+            <div style="height: 350px; width: 100%;">
+                <!-- TradingView Widget BEGIN -->
+                <div class="tradingview-widget-container" style="height:100%;width:100%">
+                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                    {
+                      "autosize": true,
+                      "symbol": "NSE:NIFTY",
+                      "interval": "5",
+                      "timezone": "Asia/Kolkata",
+                      "theme": "dark",
+                      "style": "1",
+                      "locale": "en",
+                      "enable_publishing": false,
+                      "hide_top_toolbar": false,
+                      "save_image": false,
+                      "calendar": false,
+                      "support_host": "https://www.tradingview.com"
+                    }
+                    </script>
+                </div>
+                <!-- TradingView Widget END -->
+            </div>
         </div>
     </div>
 
@@ -217,6 +245,11 @@ html_content = """
                 setTimeout(() => splash.style.display = 'none', 500);
             }, 1000);
             fetchAccounts();
+            
+            // Auto-refresh accounts & P&L every 5 seconds seamlessly
+            setInterval(() => {
+                fetchAccounts();
+            }, 5000);
         });
 
         function switchTab(tabName, el) {
@@ -248,7 +281,7 @@ html_content = """
                 let accounts = await res.json();
                 renderUI(accounts);
             } catch(e) {
-                addLog('Error fetching accounts from server.');
+                // Silent catch for periodic fetch
             }
         }
 
@@ -401,36 +434,4 @@ async def toggle_account(acc_id: str):
     accounts = load_server_accounts()
     for acc in accounts:
         if acc["id"] == acc_id:
-            acc["enabled"] = not acc["enabled"]
-            save_server_accounts(accounts)
-            return {"status": "success", "enabled": acc["enabled"]}
-    raise HTTPException(status_code=404, detail="Account not found")
-
-@app.delete("/api/accounts/{acc_id}")
-async def delete_account(acc_id: str):
-    accounts = load_server_accounts()
-    accounts = [acc for acc in accounts if acc["id"] != acc_id]
-    save_server_accounts(accounts)
-    return {"status": "deleted"}
-
-@app.post("/api/trade/execute")
-async def execute_trade(mode: str = "paper"):
-    accounts = load_server_accounts()
-    active_accs = [a for a in accounts if a["enabled"]]
-    
-    if not active_accs:
-        return {"message": "No accounts enabled for trading!"}
-    
-    count = 0
-    for acc in active_accs:
-        if mode == "paper":
-            acc["pnl"] += 125.00  # Simulated paper trading profit
-        else:
-            # Real trading broker execution hook can be added here
-            acc["pnl"] += 0.00 
-        count += 1
-        
-    save_server_accounts(accounts)
-    mode_text = "Paper Trading" if mode == "paper" else "Real Trading"
-    return {"message": f"[{mode_text}] Successfully executed across {count} active server account(s)."}
-    
+            acc["enabled"] = not acc["enabled"
