@@ -161,7 +161,7 @@ def execute_order(order: OrderExecutionRequest):
     if not target_acc: raise HTTPException(status_code=400)
     target_acc["positions"].append({"id": random.randint(10000, 99999), "symbol": order.symbol, "action": order.action, "product_type": order.product_type, "quantity": order.quantity, "entry_price": order.price, "current_price": order.price, "pnl": 0.0, "time": datetime.now().strftime("%H:%M:%S")})
     return {"status": "success"}
-HTML_TEMPLATE = """
+ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
