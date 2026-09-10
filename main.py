@@ -33,16 +33,13 @@ async def pnl_simulation_loop():
             now = datetime.now()
             is_weekday = now.weekday() < 5
             current_time_val = now.hour * 100 + now.minute
-            # 9:15 AM (915) se 3:30 PM (1530) in 24h integer check for market hours
             is_market_hours = is_weekday and (915 <= current_time_val <= 1530)
             
             active_accs = [acc for acc in server_state["accounts"] if acc["active"]]
-            
-            # Current time in 12-hour format with AM/PM for display
             time_12hr = now.strftime("%I:%M %p")
             
             if is_market_hours and len(active_accs) > 0:
-                server_state["engine_status"] = f"RUNNING ({time_12hr} AM/PM)"
+                server_state["engine_status"] = f"RUNNING ({time_12hr})"
                 server_state["active_positions"] = len(active_accs)
                 
                 total_active_capital = sum(acc["capital"] for acc in active_accs)
@@ -138,7 +135,7 @@ HTML_CONTENT = """
             --border-color: #334155;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); padding-bottom: 70px; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding-bottom: 90px; }
         header { text-align: center; padding: 15px; font-weight: bold; font-size: 1.1rem; letter-spacing: 1px; background: #020617; border-bottom: 1px solid var(--border-color); color: var(--accent); }
         .container { padding: 12px; max-width: 600px; margin: 0 auto; }
         .tab-content { display: none; }
@@ -163,7 +160,7 @@ HTML_CONTENT = """
         input:checked + .slider { background-color: var(--accent-green); }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #020617; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #020617; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 10px 0 20px 0; z-index: 1000; }
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: color 0.2s; }
         .nav-item.active { color: var(--accent); font-weight: bold; }
         .nav-item svg { width: 20px; height: 20px; margin-bottom: 3px; fill: currentColor; }
@@ -384,4 +381,4 @@ HTML_CONTENT = """
 @app.get("/", response_class=HTMLResponse)
 def home():
     return HTML_CONTENT
-            
+        
