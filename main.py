@@ -3,6 +3,8 @@ import time
 import math
 import random
 import threading
+import pyotp
+import requests
 from datetime import datetime, time as dtime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -56,6 +58,35 @@ class OrderExecutionRequest(BaseModel):
     product_type: str
     quantity: int
     price: float
+
+    
+    def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
+    url = "https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByTotp"
+    try:
+        totp = pyotp.TOTP(totp_key).now()
+    except Exception as e:
+        return {"status": "error", "message": f"Invalid TOTP: {str(e)}"}
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-UserType": "USER",
+        "X-SourceID": "WEB",
+        "X-ClientLocalIP": "192.168.1.1",
+        "X-ClientPublicIP": "106.193.147.98",
+        "X-MACAddress": "MAC",
+        "X-ApiKey": api_key
+    }
+    try:
+        response = requests.post(url, json={"clientcode": client_id, "totp": totp}, headers=headers)
+        res_data = response.json()
+        if res_data.get("status") == True:
+            return {"status": "success", "token": res_data["data"]["jwtToken"]}
+        else:
+            return {"status": "error", "message": res_data.get("message", "Login failed")}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+        
 
 def background_trading_engine():
     while True:
