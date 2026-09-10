@@ -1,316 +1,333 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-import asyncio
+import os
+import time
+import math
 import random
-from datetime import datetime
+import threading
+from datetime import datetime, time as dtime
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse
+from pydantic import BaseModel, EmailStr
 
-app = FastAPI()
+app = FastAPI(title="GN Algo Matrix Professional Dashboard", version="3.1.0")
 
 server_state = {
-    "trading_mode": "PAPER",
-    "capital": 10000.0,
+    "auth": {"logged_in": False, "email": ""},
+    "global_trading_mode": "PAPER",
+    "engine_status": "IDLE",
+    "market_session": "INDIAN",
+    "active_capital": 1000.0,
+    "max_risk_limit": -50.0,
     "today_pnl": 0.0,
-    "active_positions": 0,
-    "engine_status": "RUNNING (PAPER MODE)",
-    "max_loss_limit": -250.0,
+    "active_positions_count": 0,
+    "kill_switch_active": False,
+    "api_connection_status": "HEALTHY",
     "accounts": [
-        {"id": 1, "name": "Paper Trading Sandbox", "client_id": "PAPER_DEMO_01", "api_key": "sandbox_key", "capital": 10000.0, "active": True}
+        {
+            "id": 1,
+            "name": "Primary Sandbox Account",
+            "client_id": "GN_DEMO_01",
+            "api_key": "sample_api_key_123",
+            "totp_key": "JBSWY3DPEHPK3PXP",
+            "active": True,
+            "capital": 1000.0,
+            "pnl": 0.0,
+            "positions": []
+        }
     ],
-    "custom_strategies": [
-        {"id": 1, "name": "NIFTY Strategies Basket V2", "indicator": "Supertrend", "target": 2.0, "sl": 1.0, "status": "Active"}
-    ]
+    "trades_history": [],
+    "watchlist_india": ["NIFTY 50", "BANK NIFTY", "SENSEX", "FINNIFTY"],
+    "watchlist_us": ["S&P 500", "NASDAQ 100", "DOW JONES", "RUSSELL 2000"]
 }
 
-def update_risk_limits(cap):
-    if cap <= 1000: return -50.0
-    elif cap <= 10000: return -250.0
-    else: return -2500.0
+class LoginRequest(BaseModel):
+    email: EmailStr
 
-async def pnl_simulation_loop():
+class AccountConfig(BaseModel):
+    name: str
+    client_id: str
+    api_key: str
+    totp_key: str
+    capital: float
+
+class OrderExecutionRequest(BaseModel):
+    account_id: int
+    symbol: str
+    action: str
+    product_type: str
+    quantity: int
+    price: float
+
+def background_trading_engine():
     while True:
-        try:
-            now = datetime.now()
-            is_weekday = now.weekday() < 5
-            curr_val = now.hour * 100 + now.minute
-            is_market = is_weekday and (915 <= curr_val <= 1530)
-            active_accs = [acc for acc in server_state["accounts"] if acc["active"]]
-            time_12 = now.strftime("%I:%M %p")
-            mode_lbl = "PAPER MODE" if server_state["trading_mode"] == "PAPER" else "LIVE MODE"
-            
-            if is_market and len(active_accs) > 0:
-                server_state["engine_status"] = f"RUNNING ({mode_lbl} - {time_12})"
-                server_state["active_positions"] = len(active_accs)
-                total_cap = sum(acc["capital"] for acc in active_accs)
-                server_state["capital"] = total_cap
-                server_state["max_loss_limit"] = update_risk_limits(total_cap)
-                
-                if server_state["today_pnl"] > server_state["max_loss_limit"]:
-                    step = total_cap * random.uniform(-0.003, 0.004)
-                    server_state["today_pnl"] += round(step, 2)
-                    if server_state["today_pnl"] <= server_state["max_loss_limit"]:
-                        server_state["today_pnl"] = server_state["max_loss_limit"]
-                        server_state["engine_status"] = f"STOPPED (SL HIT) at {time_12}"
-            else:
-                server_state["engine_status"] = f"IDLE ({time_12} - MARKET CLOSED)"
-                server_state["active_positions"] = 0
-        except Exception as e:
-            print("Error:", e)
-        await asyncio.sleep(5)
+        time.sleep(3)
+        if server_state["engine_status"] != "RUNNING" or server_state["kill_switch_active"]:
+            continue
+        if datetime.now().time() >= dtime(15, 15):
+            force_square_off_all("Market Auto Square-Off Time (3:15 PM) Reached.")
+            continue
+        total_portfolio_pnl = 0.0
+        active_count = 0
+        for acc in server_state["accounts"]:
+            if not acc["active"]: continue
+            acc_pnl = 0.0
+            for pos in list(acc["positions"]):
+                active_count += 1
+                pos["current_price"] = round(pos["current_price"] + random.uniform(-1.5, 1.8), 2)
+                diff = (pos["current_price"] - pos["entry_price"]) if pos["action"] == "BUY" else (pos["entry_price"] - pos["current_price"])
+                pos["pnl"] = round(diff * pos["quantity"], 2)
+                sl_price = pos["entry_price"] * 0.98 if pos["action"] == "BUY" else pos["entry_price"] * 1.02
+                if (pos["current_price"] <= sl_price and pos["action"] == "BUY") or (pos["current_price"] >= sl_price and pos["action"] == "SELL"):
+                    server_state["trades_history"].insert(0, {"time": datetime.now().strftime("%H:%M:%S"), "account": acc["name"], "symbol": pos["symbol"], "event": "STOP-LOSS HIT", "pnl": pos["pnl"]})
+                    acc["pnl"] += pos["pnl"]
+                    acc["positions"].remove(pos)
+                    continue
+                acc_pnl += pos["pnl"]
+            acc["pnl"] = round(acc_pnl, 2)
+            total_portfolio_pnl += acc["pnl"]
+        server_state["today_pnl"] = round(total_portfolio_pnl, 2)
+        server_state["active_positions_count"] = active_count
+        if server_state["today_pnl"] <= server_state["max_risk_limit"]:
+            force_square_off_all("Max Risk Limit Breached!")
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(pnl_simulation_loop())
+engine_thread = threading.Thread(target=background_trading_engine, daemon=True)
+engine_thread.start()
 
-@app.get("/api/state")
-def get_state():
-    return server_state
-
-@app.post("/api/mode/toggle")
-async def toggle_mode(request: Request):
-    data = await request.json()
-    mode = data.get("mode", "PAPER")
-    server_state["trading_mode"] = mode
-    if mode == "PAPER":
-        server_state["accounts"] = [
-            {"id": 1, "name": "Paper Trading Sandbox", "client_id": "PAPER_DEMO_01", "api_key": "sandbox_key", "capital": 10000.0, "active": True}
-        ]
-    server_state["capital"] = sum(acc["capital"] for acc in server_state["accounts"] if acc["active"])
-    server_state["max_loss_limit"] = update_risk_limits(server_state["capital"])
-    return {"status": "success", "state": server_state}
-
-@app.post("/api/strategy/add")
-async def add_strategy(request: Request):
-    data = await request.json()
-    new_strat = {
-        "id": len(server_state["custom_strategies"]) + 1,
-        "name": data.get("name", "Custom Strategy"),
-        "indicator": data.get("indicator", "EMA Crossover"),
-        "target": float(data.get("target", 2.0)),
-        "sl": float(data.get("sl", 1.0)),
-        "status": "Active"
-    }
-    server_state["custom_strategies"].append(new_strat)
-    return {"status": "success", "strategies": server_state["custom_strategies"]}
-
-@app.post("/api/accounts/add")
-async def add_account(request: Request):
-    data = await request.json()
-    new_acc = {
-        "id": len(server_state["accounts"]) + 1,
-        "name": data.get("name", "User Account"),
-        "client_id": data.get("client_id", "ID_UNKNOWN"),
-        "api_key": data.get("api_key", ""),
-        "capital": float(data.get("capital", 10000.0)),
-        "active": True
-    }
-    server_state["accounts"].append(new_acc)
-    server_state["capital"] = sum(acc["capital"] for acc in server_state["accounts"] if acc["active"])
-    server_state["max_loss_limit"] = update_risk_limits(server_state["capital"])
-    return {"status": "success", "accounts": server_state["accounts"]}
-
-@app.post("/api/accounts/toggle/{acc_id}")
-def toggle_account(acc_id: int):
+def force_square_off_all(reason: str):
+    server_state["kill_switch_active"] = True
+    server_state["engine_status"] = "HALTED (KILL SWITCH)"
     for acc in server_state["accounts"]:
-        if acc["id"] == acc_id: acc["active"] = not acc["active"]
-    active_accs = [acc for acc in server_state["accounts"] if acc["active"]]
-    server_state["capital"] = sum(acc["capital"] for acc in active_accs) if active_accs else 0.0
-    server_state["max_loss_limit"] = update_risk_limits(server_state["capital"])
-    return {"status": "success", "accounts": server_state["accounts"]}
-
-@app.post("/api/accounts/delete/{acc_id}")
-def delete_account(acc_id: int):
-    server_state["accounts"] = [acc for acc in server_state["accounts"] if acc["id"] != acc_id]
-    active_accs = [acc for acc in server_state["accounts"] if acc["active"]]
-    server_state["capital"] = sum(acc["capital"] for acc in active_accs) if active_accs else 0.0
-    server_state["max_loss_limit"] = update_risk_limits(server_state["capital"])
-    return {"status": "success", "accounts": server_state["accounts"]}
+        for pos in list(acc["positions"]):
+            server_state["trades_history"].insert(0, {"time": datetime.now().strftime("%H:%M:%S"), "account": acc["name"], "symbol": pos["symbol"], "event": f"SQUARE OFF: {reason}", "pnl": pos["pnl"]})
+            acc["positions"].remove(pos)
+    server_state["active_positions_count"] = 0
 
 @app.get("/", response_class=HTMLResponse)
-def home():
-    return """
+def serve_dashboard(): return HTML_TEMPLATE
+
+@app.post("/api/auth/login")
+def api_login(data: LoginRequest):
+    server_state["auth"]["logged_in"] = True
+    server_state["auth"]["email"] = data.email
+    return {"status": "success"}
+
+@app.get("/api/state")
+def get_system_state(): return server_state
+
+@app.post("/api/engine/toggle")
+def toggle_engine(status: str):
+    server_state["engine_status"] = status if status == "RUNNING" else "PAUSED"
+    return {"status": "success"}
+
+@app.post("/api/trading-mode/toggle")
+def toggle_trading_mode(mode: str):
+    server_state["global_trading_mode"] = mode
+    return {"status": "success"}
+
+@app.post("/api/kill-switch/trigger")
+def trigger_kill_switch():
+    force_square_off_all("Manual Kill Switch")
+    return {"status": "success"}
+
+@app.post("/api/kill-switch/reset")
+def reset_kill_switch():
+    server_state["kill_switch_active"] = False
+    server_state["engine_status"] = "IDLE"
+    return {"status": "success"}
+
+@app.post("/api/accounts/add")
+def add_demat_account(acc: AccountConfig):
+    if len(server_state["accounts"]) >= 5: raise HTTPException(status_code=400, detail="Max 5 accounts.")
+    new_id = max([a["id"] for a in server_state["accounts"]], default=0) + 1
+    max_loss = -50.0 if acc.capital <= 1000 else (-250.0 if acc.capital <= 10000 else -(acc.capital * 0.025))
+    server_state["accounts"].append({"id": new_id, "name": acc.name, "client_id": acc.client_id, "api_key": acc.api_key, "totp_key": acc.totp_key, "active": True, "capital": acc.capital, "pnl": 0.0, "positions": []})
+    server_state["max_risk_limit"] = min(server_state["max_risk_limit"], max_loss)
+    return {"status": "success"}
+
+@app.post("/api/accounts/{account_id}/toggle")
+def toggle_account(account_id: int):
+    for acc in server_state["accounts"]:
+        if acc["id"] == account_id: acc["active"] = not acc["active"]
+    return {"status": "success"}
+
+@app.delete("/api/accounts/{account_id}")
+def delete_account(account_id: int):
+    global server_state
+    server_state["accounts"] = [a for a in server_state["accounts"] if a["id"] != account_id]
+    return {"status": "success"}
+
+@app.post("/api/orders/execute")
+def execute_order(order: OrderExecutionRequest):
+    target_acc = next((a for a in server_state["accounts"] if a["id"] == order.account_id), None)
+    if not target_acc: raise HTTPException(status_code=400)
+    target_acc["positions"].append({"id": random.randint(10000, 99999), "symbol": order.symbol, "action": order.action, "product_type": order.product_type, "quantity": order.quantity, "entry_price": order.price, "current_price": order.price, "pnl": 0.0, "time": datetime.now().strftime("%H:%M:%S")})
+    return {"status": "success"}
+            HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GN ALGO MATRIX</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --green: #22c55e; --red: #ef4444; --border: #334155; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--text); padding-bottom: 80px; }
-        header { text-align: center; padding: 15px; font-weight: bold; background: #020617; border-bottom: 1px solid var(--border); color: var(--accent); }
-        .container { padding: 12px; max-width: 600px; margin: 0 auto; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin-bottom: 12px; }
-        .card-title { font-size: 0.9rem; font-weight: 600; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
-        .flex-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
-        .badge { padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
-        .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
-        .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
-        .badge-yellow { background: rgba(234,179,8,0.15); color: #eab308; }
-        .form-group { margin-bottom: 10px; }
-        .form-group label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
-        .form-control { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border); color: #fff; border-radius: 8px; font-size: 0.9rem; }
-        .btn-primary { width: 100%; padding: 12px; background: var(--green); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
-        .btn-danger { background: var(--red); color: #fff; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
-        .mode-selector { display: flex; background: #0f172a; border-radius: 8px; padding: 4px; border: 1px solid var(--border); margin-bottom: 12px; }
-        .mode-btn { flex: 1; padding: 8px; text-align: center; background: transparent; border: none; color: var(--muted); font-weight: bold; font-size: 0.8rem; border-radius: 6px; cursor: pointer; }
-        .mode-btn.active-paper { background: rgba(234,179,8,0.2); color: #eab308; }
-        .mode-btn.active-live { background: rgba(239,68,68,0.2); color: var(--red); }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #020617; border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0 20px 0; z-index: 1000; }
-        .nav-item { background: none; border: none; color: var(--muted); font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 20%; }
-        .nav-item.active { color: var(--accent); font-weight: bold; }
-        .nav-item svg { width: 20px; height: 20px; margin-bottom: 3px; fill: currentColor; }
+        :root { --bg-primary: #0b0e14; --bg-secondary: #161b22; --bg-card: #21262d; --accent-green: #238636; --accent-red: #da3633; --accent-blue: #1f6feb; --text-main: #c9d1d9; --text-muted: #8b949e; --border-color: #30363d; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; word-wrap: break-word; }
+        body { background-color: var(--bg-primary); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; }
+        .app-container { width: 100%; max-width: 480px; background-color: var(--bg-secondary); display: flex; flex-direction: column; position: relative; border: 1px solid var(--border-color); }
+        header { padding: 16px; background-color: var(--bg-card); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .logo { font-size: 16px; font-weight: 800; color: #58a6ff; }
+        .content-area { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 90px; }
+        .hidden { display: none !important; }
+        .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+        .card-title { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; font-weight: 600; display: flex; justify-content: space-between; }
+        .flex-row { display: flex; justify-content: space-between; align-items: center; }
+        .metric-value { font-size: 20px; font-weight: 700; }
+        .profit { color: var(--accent-green); }
+        .loss { color: var(--accent-red); }
+        .btn { padding: 8px 14px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 13px; }
+        .btn-green { background-color: var(--accent-green); color: white; }
+        .btn-red { background-color: var(--accent-red); color: white; }
+        .btn-blue { background-color: var(--accent-blue); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .kill-banner { background: rgba(218,54,51,0.15); border: 1px solid var(--accent-red); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 14px; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 480px; height: 64px; background-color: var(--bg-card); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; cursor: pointer; flex: 1; }
+        .nav-item.active { color: #58a6ff; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; margin-top: 6px; margin-bottom: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); font-size: 13px; }
+        .account-card { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-top: 8px; }
+        .position-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed var(--border-color); }
     </style>
 </head>
 <body>
-    <header>GN ALGO MATRIX</header>
-    <div class="container">
-        <div id="tab-dashboard" class="tab-content active">
-            <div class="card">
-                <div class="card-title">Trading Mode <span id="mode-badge" class="badge badge-yellow">PAPER</span></div>
-                <div class="mode-selector">
-                    <button id="btn-paper" class="mode-btn active-paper" onclick="switchMode('PAPER')">🟢 Paper Trading</button>
-                    <button id="btn-live" class="mode-btn" onclick="switchMode('LIVE')">🔴 Live Trading</button>
+    <div class="app-container">
+        <header>
+            <div class="logo">GN ALGO MATRIX</div>
+            <div style="font-size: 11px; padding: 3px 8px; border-radius: 12px; background: rgba(35,134,54,0.2); color: var(--accent-green);">Connected</div>
+        </header>
+        <div class="content-area">
+            <div id="view-login" class="card">
+                <div class="card-title">Secure Gmail Authentication</div>
+                <label>Gmail Address</label>
+                <input type="email" id="login-email" value="neeraj@gmail.com">
+                <button class="btn btn-blue" style="width: 100%;" onclick="handleLogin()">Login</button>
+            </div>
+            <div id="view-dashboard" class="hidden">
+                <div id="kill-alert" class="kill-banner hidden">
+                    <h3 style="color:var(--accent-red);">⚠️ KILL SWITCH ACTIVE</h3>
+                    <button class="btn btn-green" onclick="resetKillSwitch()">Reset</button>
+                </div>
+                <button class="btn btn-red" style="width: 100%; padding: 12px; font-weight: bold; margin-bottom: 14px;" onclick="triggerKillSwitch()">🚨 EMERGENCY KILL SWITCH</button>
+                <div class="card">
+                    <div class="card-title">Execution Controls</div>
+                    <div class="flex-row" style="margin-bottom: 10px;"><span>Mode:</span><div><button id="mode-paper" class="btn btn-outline" onclick="setTradingMode('PAPER')">Paper</button><button id="mode-real" class="btn btn-outline" onclick="setTradingMode('REAL')">Real</button></div></div>
+                    <div class="flex-row"><span>Engine:</span><div><button id="engine-start" class="btn btn-green" onclick="toggleEngine('RUNNING')">Start</button><button id="engine-pause" class="btn btn-outline" onclick="toggleEngine('PAUSED')">Pause</button></div></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Live Performance</div>
+                    <div class="flex-row" style="margin-bottom: 8px;"><span>Net P&L</span><span id="dash-pnl" class="metric-value">+₹0.00</span></div>
+                    <div class="flex-row" style="margin-bottom: 8px;"><span>Active Positions</span><span id="dash-positions-count" style="font-weight: 700;">0</span></div>
+                    <div class="flex-row"><span>Max Risk Limit</span><span id="dash-max-risk" style="color: var(--accent-red); font-weight: 700;">-₹50.00</span></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Quick Order</div>
+                    <select id="order-account-select"></select>
+                    <div style="display: flex; gap: 8px;"><select id="order-symbol"><option value="NIFTY 50">NIFTY 50</option><option value="BANK NIFTY">BANK NIFTY</option><option value="SENSEX">SENSEX</option></select><select id="order-type"><option value="BUY">BUY</option><option value="SELL">SELL</option></select></div>
+                    <div style="display: flex; gap: 8px; margin-top: 6px;"><select id="product-type"><option value="INTRADAY">Intraday</option><option value="INVESTMENT">Investment</option></select><input type="number" id="order-qty" value="25" style="margin:0; width: 80px;"></div>
+                    <button class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="executeQuickOrder()">Execute</button>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-title">Engine Status</div>
-                <div class="flex-row"><span>Status</span><span id="engine-status" class="badge badge-green">Loading...</span></div>
-                <div class="flex-row"><span>Active Capital</span><span id="txt-capital">₹10,000</span></div>
-                <div class="flex-row"><span>Max Risk (SL)</span><span id="txt-risk" style="color:var(--red);">-₹250</span></div>
+            <div id="view-strategies" class="hidden">
+                <div class="card"><div class="card-title">Demat Accounts (Max 5)</div><div id="accounts-list-container"></div></div>
+                <div class="card"><div class="card-title">Add Account</div><input type="text" id="acc-name" placeholder="Nickname"><input type="text" id="acc-clientid" placeholder="Client ID"><input type="text" id="acc-apikey" placeholder="API Key"><input type="text" id="acc-totpkey" placeholder="TOTP Key"><input type="number" id="acc-capital" value="1000"><button class="btn btn-green" style="width: 100%;" onclick="addAccount()">Add Account</button></div></div>
             </div>
-            <div class="card">
-                <div class="card-title">Performance</div>
-                <div class="flex-row"><span>Today's P&L</span><span id="live-pnl" class="badge badge-green">+₹0.00</span></div>
-                <div class="flex-row"><span>Active Positions</span><span id="active-pos">0</span></div>
+            <div id="view-watchlist" class="hidden">
+                <div class="card"><div class="card-title">Market Session: <span id="market-session-label">INDIAN</span></div><div style="display: flex; gap: 8px; margin-bottom: 12px;"><button class="btn btn-blue" style="flex: 1;" onclick="setMarketSession('INDIAN')">India</button><button class="btn btn-outline" style="flex: 1;" onclick="setMarketSession('US')">US</button></div><div id="watchlist-items"></div></div>
+                <div class="card"><div class="card-title">Chart Feed</div><canvas id="marketChart" width="400" height="200"></canvas></div>
             </div>
-        </div>
-
-        <div id="tab-wizard" class="tab-content">
-            <div class="card">
-                <div class="card-title">Strategy Wizard</div>
-                <form id="wizard-form" onsubmit="createStrategy(event)">
-                    <div class="form-group"><label>Strategy Name</label><input type="text" id="wiz-name" class="form-control" placeholder="e.g. Nifty Alpha" required></div>
-                    <div class="form-group"><label>Indicator</label><select id="wiz-indicator" class="form-control"><option value="EMA Crossover">EMA Crossover</option><option value="Supertrend">Supertrend</option></select></div>
-                    <div class="form-group"><label>Target (%)</label><input type="number" step="0.1" id="wiz-target" class="form-control" value="2.0" required></div>
-                    <div class="form-group"><label>Stop Loss (%)</label><input type="number" step="0.1" id="wiz-sl" class="form-control" value="1.0" required></div>
-                    <button type="submit" class="btn-primary">DEPLOY STRATEGY</button>
-                </form>
+            <div id="view-more" class="hidden">
+                <div class="card"><div class="card-title">Audit Logs</div><div id="logs-container" style="max-height: 300px; overflow-y: auto; font-size: 11px;"></div></div>
             </div>
         </div>
-
-        <div id="tab-strategies" class="tab-content">
-            <div class="card">
-                <div class="card-title">Strategies Basket</div>
-                <div id="strategies-list"></div>
-            </div>
-        </div>
-
-        <div id="tab-watchlist" class="tab-content">
-            <div class="card">
-                <div class="card-title">Nifty Live Chart</div>
-                <div style="height: 400px; width: 100%;">
-                    <div class="tradingview-widget-container" style="height:100%;width:100%">
-                        <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-                        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-                        { "autosize": true, "symbol": "NSE:NIFTY", "interval": "5", "timezone": "Asia/Kolkata", "theme": "dark", "style": "1", "locale": "en", "enable_publishing": false, "calendar": false }
-                        </script>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-more" class="tab-content">
-            <div class="card">
-                <div class="card-title">Add Demat Account</div>
-                <form id="account-form" onsubmit="addAccount(event)">
-                    <div class="form-group"><label>Broker Name</label><input type="text" id="acc-name" class="form-control" placeholder="Angel One / Zerodha" required></div>
-                    <div class="form-group"><label>Client ID</label><input type="text" id="acc-clientid" class="form-control" placeholder="Client ID" required></div>
-                    <div class="form-group"><label>API Key</label><input type="text" id="acc-apikey" class="form-control" placeholder="API Key" required></div>
-                    <div class="form-group"><label>Capital (₹)</label><input type="number" id="acc-capital" class="form-control" value="10000" min="1000" required></div>
-                    <button type="submit" class="btn-primary">SAVE ACCOUNT</button>
-                </form>
-            </div>
-            <div class="card">
-                <div class="card-title">Manage Accounts</div>
-                <div id="accounts-list"></div>
-            </div>
-        </div>
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchTab('dashboard', this)">Dashboard</button>
+            <button class="nav-item" onclick="switchTab('strategies', this)">Strategies</button>
+            <button class="nav-item" onclick="switchTab('watchlist', this)">Watchlist</button>
+            <button class="nav-item" onclick="switchTab('more', this)">More</button>
+        </nav>
     </div>
-
-    <nav class="bottom-nav">
-        <button class="nav-item active" onclick="switchTab('dashboard', this)"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</button>
-        <button class="nav-item" onclick="switchTab('wizard', this)"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>Wizard</button>
-        <button class="nav-item" onclick="switchTab('strategies', this)"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Strategies</button>
-        <button class="nav-item" onclick="switchTab('watchlist', this)"><svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>Watchlist</button>
-        <button class="nav-item" onclick="switchTab('more', this)"><svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>More</button>
-    </nav>
-
     <script>
-        function switchTab(id, btn) {
-            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.getElementById('tab-' + id).classList.add('active');
-            btn.classList.add('active');
-        }
-        async function switchMode(m) {
-            let res = await fetch('/api/mode/toggle', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mode: m})});
-            let data = await res.json();
-            updateUI(data.state);
-        }
-        function updateUI(d) {
-            document.getElementById('engine-status').innerText = d.engine_status;
-            document.getElementById('txt-capital').innerText = '₹' + d.capital.toLocaleString('en-IN');
-            document.getElementById('txt-risk').innerText = '-₹' + Math.abs(d.max_loss_limit).toLocaleString('en-IN');
-            document.getElementById('active-pos').innerText = d.active_positions;
-            let badge = document.getElementById('mode-badge'), bp = document.getElementById('btn-paper'), bl = document.getElementById('btn-live');
-            if(d.trading_mode === 'PAPER') {
-                badge.innerText = 'PAPER'; badge.className = 'badge badge-yellow';
-                bp.className = 'mode-btn active-paper'; bl.className = 'mode-btn';
-            } else {
-                badge.innerText = 'LIVE'; badge.className = 'badge badge-red';
-                bl.className = 'mode-btn active-live'; bp.className = 'mode-btn';
-            }
-            let pnl = document.getElementById('live-pnl'), val = d.today_pnl;
-            pnl.innerText = (val >= 0 ? '+₹' : '-₹') + Math.abs(val).toLocaleString('en-IN', {minimumFractionDigits: 2});
-            pnl.className = val >= 0 ? "badge badge-green" : "badge badge-red";
-            
-            let accHtml = '';
-            d.accounts.forEach(a => {
-                accHtml += `<div class="flex-row" style="background:#0f172a;padding:8px;border-radius:6px;margin-bottom:6px;"><div><strong>${a.name}</strong><br><small style="color:var(--muted)">ID: ${a.client_id}</small></div><button class="btn-danger" onclick="delAcc(${a.id})">Delete</button></div>`;
+        let currentState = {};
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            fetch('/api/auth/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email})})
+            .then(() => {
+                document.getElementById('view-login').classList.add('hidden');
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                setInterval(pollState, 2000);
             });
-            document.getElementById('accounts-list').innerHTML = accHtml;
-            
-            let stHtml = '';
-            d.custom_strategies.forEach(s => {
-                stHtml += `<div class="flex-row" style="background:#0f172a;padding:8px;border-radius:6px;margin-bottom:6px;"><div><strong>${s.name}</strong><br><small style="color:var(--muted)">Tgt: ${s.target}% | SL: ${s.sl}%</small></div><span class="badge badge-green">${s.status}</span></div>`;
+        }
+        function switchTab(tab, el) {
+            document.querySelectorAll('.content-area > div').forEach(d => d.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('view-' + tab).classList.remove('hidden');
+            el.classList.add('active');
+        }
+        function pollState() {
+            fetch('/api/state').then(res => res.json()).then(data => { currentState = data; updateUI(); });
+        }
+        function updateUI() {
+            const pnlEl = document.getElementById('dash-pnl');
+            pnlEl.innerText = (currentState.today_pnl >= 0 ? "+₹" : "-₹") + Math.abs(currentState.today_pnl).toFixed(2);
+            pnlEl.className = "metric-value " + (currentState.today_pnl >= 0 ? "profit" : "loss");
+            document.getElementById('dash-positions-count').innerText = currentState.active_positions_count;
+            document.getElementById('dash-max-risk').innerText = "-₹" + Math.abs(currentState.max_risk_limit).toFixed(2);
+            if(currentState.kill_switch_active) document.getElementById('kill-alert').classList.remove('hidden');
+            else document.getElementById('kill-alert').classList.add('hidden');
+            let accHtml = '', orderSelectHtml = '';
+            currentState.accounts.forEach(acc => {
+                orderSelectHtml += `<option value="${acc.id}">${acc.name} (₹${acc.capital})</option>`;
+                let posHtml = '';
+                acc.positions.forEach(p => {
+                    posHtml += `<div class="position-row"><span>${p.symbol} (${p.action})</span><span class="${p.pnl>=0?'profit':'loss'}">${p.pnl}</span></div>`;
+                });
+                accHtml += `<div class="account-card"><strong>${acc.name}</strong> <button class="btn btn-outline" style="padding:2px 5px;" onclick="deleteAccount(${acc.id})">✕</button><br>${posHtml || 'No positions'}</div>`;
             });
-            document.getElementById('strategies-list').innerHTML = stHtml;
+            document.getElementById('accounts-list-container').innerHTML = accHtml;
+            document.getElementById('order-account-select').innerHTML = orderSelectHtml;
         }
-        async function fetchData() {
-            try { let res = await fetch('/api/state'); let d = await res.json(); updateUI(d); } catch(e){}
+        function setTradingMode(m) { fetch('/api/trading-mode/toggle?mode=' + m, {method: 'POST'}).then(pollState); }
+        function toggleEngine(s) { fetch('/api/engine/toggle?status=' + s, {method: 'POST'}).then(pollState); }
+        function triggerKillSwitch() { fetch('/api/kill-switch/trigger', {method: 'POST'}).then(pollState); }
+        function resetKillSwitch() { fetch('/api/kill-switch/reset', {method: 'POST'}).then(pollState); }
+        function addAccount() {
+            const data = {
+                name: document.getElementById('acc-name').value,
+                client_id: document.getElementById('acc-clientid').value,
+                api_key: document.getElementById('acc-apikey').value,
+                totp_key: document.getElementById('acc-totpkey').value,
+                capital: parseFloat(document.getElementById('acc-capital').value) || 1000
+            };
+            fetch('/api/accounts/add', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)}).then(() => pollState());
         }
-        async function createStrategy(e) {
-            e.preventDefault();
-            let body = {name: document.getElementById('wiz-name').value, indicator: document.getElementById('wiz-indicator').value, target: document.getElementById('wiz-target').value, sl: document.getElementById('wiz-sl').value};
-            let res = await fetch('/api/strategy/add', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-            if((await res.json()).status === 'success') { document.getElementById('wizard-form').reset(); switchTab('strategies', document.querySelectorAll('.nav-item')[2]); fetchData(); }
+        function deleteAccount(id) { fetch('/api/accounts/' + id, {method: 'DELETE'}).then(pollState); }
+        function executeQuickOrder() {
+            const data = {
+                account_id: parseInt(document.getElementById('order-account-select').value),
+                symbol: document.getElementById('order-symbol').value,
+                action: document.getElementById('order-type').value,
+                product_type: document.getElementById('product-type').value,
+                quantity: parseInt(document.getElementById('order-qty').value) || 25,
+                price: 22000.0
+            };
+            fetch('/api/orders/execute', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)}).then(pollState);
         }
-        async function addAccount(e) {
-            e.preventDefault();
-            let body = {name: document.getElementById('acc-name').value, client_id: document.getElementById('acc-clientid').value, api_key: document.getElementById('acc-apikey').value, capital: document.getElementById('acc-capital').value};
-            let res = await fetch('/api/accounts/add', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-            if((await res.json()).status === 'success') { document.getElementById('account-form').reset(); fetchData(); }
+        function setMarketSession(s) { currentState.market_session = s; updateUI(); }
+        window.onload = function() {
+            const ctx = document.getElementById('marketChart').getContext('2d');
+            new Chart(ctx, { type: 'line', data: { labels: ['10:00', '11:00', '12:00', '1:00'], datasets: [{ data: [21900, 21950, 22010, 22050], borderColor: '#58a6ff' }] }, options: { plugins: { legend: { display: false } } } });
         }
-        async function delAcc(id) {
-            if(confirm('Delete account?')) { await fetch('/api/accounts/delete/' + id, {method:'POST'}); fetchData(); }
-        }
-        setInterval(fetchData, 3000);
-        fetchData();
     </script>
 </body>
 </html>
-    """
-                
+"""
+    
