@@ -61,7 +61,7 @@ class OrderExecutionRequest(BaseModel):
 
     
     def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
-    url = "https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByTotp"
+        url = "https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByTotp"
     try:
         totp = pyotp.TOTP(totp_key).now()
     except Exception as e:
