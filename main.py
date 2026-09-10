@@ -6,7 +6,7 @@ import threading
 from datetime import datetime, time as dtime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel,
+from pydantic import BaseModel
 
 app = FastAPI(title="GN Algo Matrix Professional Dashboard", version="3.1.0")
 
