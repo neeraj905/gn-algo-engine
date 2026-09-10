@@ -7,7 +7,6 @@ from datetime import datetime
 app = FastAPI()
 
 # --- SERVER STATE & DATABASE SIMULATION ---
-# In-memory storage for multi-account support
 server_state = {
     "capital": 1000.0,
     "today_pnl": 0.0,
@@ -19,7 +18,6 @@ server_state = {
     ]
 }
 
-# Capital ke hisaab se dynamic loss limit set karne ka function
 def update_risk_limits(cap):
     if cap <= 1000:
         return -50.0
@@ -28,28 +26,29 @@ def update_risk_limits(cap):
     else:
         return -2500.0
 
-# Background Simulation Loop (Market Hours: Mon-Fri, 09:15 - 15:30)
+# Background Simulation Loop (Market Hours: Mon-Fri, 09:15 AM - 03:30 PM)
 async def pnl_simulation_loop():
     while True:
         try:
             now = datetime.now()
             is_weekday = now.weekday() < 5
             current_time_val = now.hour * 100 + now.minute
+            # 9:15 AM (915) se 3:30 PM (1530) in 24h integer check for market hours
             is_market_hours = is_weekday and (915 <= current_time_val <= 1530)
             
-            # Active accounts check karo
             active_accs = [acc for acc in server_state["accounts"] if acc["active"]]
             
+            # Current time in 12-hour format with AM/PM for display
+            time_12hr = now.strftime("%I:%M %p")
+            
             if is_market_hours and len(active_accs) > 0:
-                server_state["engine_status"] = "RUNNING (LIVE MARKET)"
+                server_state["engine_status"] = f"RUNNING ({time_12hr} AM/PM)"
                 server_state["active_positions"] = len(active_accs)
                 
-                # Total active capital calculate karo
                 total_active_capital = sum(acc["capital"] for acc in active_accs)
                 server_state["capital"] = total_active_capital
                 server_state["max_loss_limit"] = update_risk_limits(total_active_capital)
                 
-                # Profit un-capped rahega, loss limit cross hone par stop hoga
                 if server_state["today_pnl"] > server_state["max_loss_limit"]:
                     fluctuation_pct = random.uniform(-0.003, 0.004)
                     step_pnl = total_active_capital * fluctuation_pct
@@ -57,9 +56,9 @@ async def pnl_simulation_loop():
                     
                     if server_state["today_pnl"] <= server_state["max_loss_limit"]:
                         server_state["today_pnl"] = server_state["max_loss_limit"]
-                        server_state["engine_status"] = "STOPPED (SL HIT)"
+                        server_state["engine_status"] = f"STOPPED (SL HIT) at {time_12hr}"
             else:
-                server_state["engine_status"] = "IDLE (MARKET CLOSED OR NO ACTIVE ACC)"
+                server_state["engine_status"] = f"IDLE ({time_12hr} - MARKET CLOSED)"
                 server_state["active_positions"] = 0
                 
         except Exception as e:
@@ -72,7 +71,7 @@ async def startup_event():
     asyncio.create_task(pnl_simulation_loop())
 
 
-# --- API ENDPOINTS FOR FRONTEND MANAGEMENT ---
+# --- API ENDPOINTS ---
 @app.get("/api/state")
 def get_state():
     return server_state
@@ -90,7 +89,6 @@ async def add_account(request: Request):
         "active": True
     }
     server_state["accounts"].append(new_acc)
-    # Total capital update karo
     server_state["capital"] = sum(acc["capital"] for acc in server_state["accounts"] if acc["active"])
     server_state["max_loss_limit"] = update_risk_limits(server_state["capital"])
     return {"status": "success", "accounts": server_state["accounts"]}
@@ -100,7 +98,6 @@ def toggle_account(acc_id: int):
     for acc in server_state["accounts"]:
         if acc["id"] == acc_id:
             acc["active"] = not acc["active"]
-    # Update total active capital
     active_accs = [acc for acc in server_state["accounts"] if acc["active"]]
     if active_accs:
         server_state["capital"] = sum(acc["capital"] for acc in active_accs)
@@ -153,14 +150,12 @@ HTML_CONTENT = """
         .badge-green { background: rgba(34,197,94,0.15); color: var(--accent-green); }
         .badge-red { background: rgba(239,68,68,0.15); color: var(--accent-red); }
         
-        /* Form Inputs */
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; }
         .form-control { width: 100%; padding: 10px; background: #0f172a; border: 1px solid var(--border-color); color: #fff; border-radius: 8px; font-size: 0.9rem; }
         .btn-primary { width: 100%; padding: 12px; background: var(--accent-green); color: #000; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; margin-top: 5px; }
         .btn-danger { background: var(--accent-red); color: #fff; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; }
         
-        /* Toggle Switch */
         .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .3s; border-radius: 22px; }
@@ -168,7 +163,6 @@ HTML_CONTENT = """
         input:checked + .slider { background-color: var(--accent-green); }
         input:checked + .slider:before { transform: translateX(18px); }
 
-        /* Bottom Navigation Bar */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #020617; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000; }
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: color 0.2s; }
         .nav-item.active { color: var(--accent); font-weight: bold; }
@@ -181,7 +175,7 @@ HTML_CONTENT = """
         <!-- Dashboard Tab -->
         <div id="tab-dashboard" class="tab-content active">
             <div class="card">
-                <div class="card-title">Engine Status</div>
+                <div class="card-title">Engine Status (12 HR Format)</div>
                 <div class="flex-row"><span>Status</span><span id="engine-status" class="badge badge-green">Loading...</span></div>
                 <div class="flex-row"><span>Total Active Capital</span><span id="txt-capital">₹1,000</span></div>
                 <div class="flex-row"><span>Max Risk Limit (SL)</span><span id="txt-risk" style="color: var(--accent-red);">-₹50</span></div>
@@ -210,12 +204,11 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- Watchlist Tab with Universal Search -->
+        <!-- Watchlist Tab -->
         <div id="tab-watchlist" class="tab-content">
             <div class="card">
-                <div class="card-title">Live Chart & Universal Search</div>
+                <div class="card-title">Live Indian Index Chart</div>
                 <div style="height: 480px; width: 100%;">
-                    <!-- TradingView Advanced Chart Widget BEGIN -->
                     <div class="tradingview-widget-container" style="height:100%;width:100%">
                         <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
                         <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
@@ -235,15 +228,14 @@ HTML_CONTENT = """
                         }
                         </script>
                     </div>
-                    <!-- TradingView Widget END -->
                 </div>
             </div>
         </div>
 
-        <!-- More Tab (Demat Account Manager) -->
+        <!-- More Tab -->
         <div id="tab-more" class="tab-content">
             <div class="card">
-                <div class="card-title">Add Demat Account (One by One)</div>
+                <div class="card-title">Add Demat Account</div>
                 <form id="account-form" onsubmit="addAccount(event)">
                     <div class="form-group">
                         <label>Account Name / Nickname</label>
@@ -271,9 +263,7 @@ HTML_CONTENT = """
 
             <div class="card">
                 <div class="card-title">Manage Server Accounts</div>
-                <div id="accounts-list">
-                    <!-- Dynamic Accounts Loaded Here -->
-                </div>
+                <div id="accounts-list"></div>
             </div>
         </div>
     </div>
@@ -325,7 +315,6 @@ HTML_CONTENT = """
                 pnlElem.innerText = (pnlVal >= 0 ? '+₹' : '-₹') + Math.abs(pnlVal).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                 pnlElem.className = pnlVal >= 0 ? "badge badge-green" : "badge badge-red";
 
-                // Render Accounts List
                 let listHtml = '';
                 data.accounts.forEach(acc => {
                     listHtml += `
@@ -395,4 +384,4 @@ HTML_CONTENT = """
 @app.get("/", response_class=HTMLResponse)
 def home():
     return HTML_CONTENT
-    
+            
