@@ -41,9 +41,6 @@ server_state = {
     "watchlist_us": ["S&P 500", "NASDAQ 100", "DOW JONES", "RUSSELL 2000"]
 }
 
-class LoginRequest(BaseModel):
-    email: EmailStr
-
 class AccountConfig(BaseModel):
     name: str
     client_id: str
@@ -61,7 +58,7 @@ class OrderExecutionRequest(BaseModel):
 
     
     def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
-        url = "https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByTotp"
+    url = "https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByTotp"
     try:
         totp = pyotp.TOTP(totp_key).now()
     except Exception as e:
@@ -86,8 +83,7 @@ class OrderExecutionRequest(BaseModel):
             return {"status": "error", "message": res_data.get("message", "Login failed")}
     except Exception as e:
         return {"status": "error", "message": str(e)}
-        
-
+    
 def background_trading_engine():
     while True:
         time.sleep(3)
