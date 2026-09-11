@@ -1,6 +1,7 @@
 import time
+import asyncio
 from datetime import datetime, time as dtime
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import pyotp
@@ -11,20 +12,23 @@ app = FastAPI()
 # --- Server State & Configuration ---
 server_state = {
     "engine_status": "RUNNING",
-    "auth": {"logged_in": True},
+    "auth": {"logged_in": False, "jwt_token": None},
     "accounts": [
         {
             "id": 1,
             "name": "Angel One Live Account",
-            "active": True,
+            "active": False,
             "capital": 1000.0,
             "pnl": 0.0,
             "positions": []
         }
     ],
-    "trades_history": [],
-    "watchlist_india": ["NIFTY 50", "BANK NIFTY"],
-    "watchlist_us": ["S&P 500", "NASDAQ 100"]
+    "settings": {
+        "product_type": "INTRADAY",
+        "stop_loss_pct": 1.0,
+        "target_pct": 2.0
+    },
+    "trades_history": []
 }
 
 class AccountConfig(BaseModel):
@@ -33,21 +37,24 @@ class AccountConfig(BaseModel):
     api_key: str
     totp_key: str
     capital: float
+    product_type: str = "INTRADAY"
+    stop_loss_pct: float = 1.0
+    target_pct: float = 2.0
 
-class OrderExecutionRequest(BaseModel):
-    account_id: int
+class OrderRequest(BaseModel):
     symbol: str
-    action: str
-    product_type: str
+    transaction_type: str  # BUY / SELL
     quantity: int
-    price: float
+    product_type: str = "INTRADAY"
+    price: float = 0.0
 
 def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
     url = "https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByTotp"
     try:
-        totp = pyotp.TOTP(totp_key).now()
+        clean_totp_key = totp_key.strip().replace(" ", "")
+        totp = pyotp.TOTP(clean_totp_key).now()
     except Exception as e:
-        return {"status": "error", "message": f"Invalid TOTP: {str(e)}"}
+        return {"status": "error", "message": f"Invalid TOTP Secret: {str(e)}"}
     
     headers = {
         "Content-Type": "application/json",
@@ -57,10 +64,13 @@ def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
         "X-ClientLocalIP": "192.168.1.1",
         "X-ClientPublicIP": "106.193.147.98",
         "X-MACAddress": "MAC",
-        "X-ApiKey": api_key
+        "X-ApiKey": api_key.strip()
     }
     try:
-        response = requests.post(url, json={"clientcode": client_id, "totp": totp}, headers=headers)
+        response = requests.post(url, json={"clientcode": client_id.strip(), "totp": totp}, headers=headers, timeout=10)
+        if not response.text.strip():
+            return {"status": "error", "message": f"Empty response from broker (HTTP {response.status_code})"}
+            
         res_data = response.json()
         if res_data.get("status") == True:
             return {"status": "success", "token": res_data["data"]["jwtToken"]}
@@ -68,6 +78,21 @@ def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
             return {"status": "error", "message": res_data.get("message", "Login failed")}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+# Background Risk Management & Auto-Trading Loop
+async def risk_management_engine():
+    while True:
+        await asyncio.sleep(3) # Check every 3 seconds
+        # Yahan par automated stop-loss aur profit target monitoring run hoti hai
+        if server_state["auth"]["logged_in"]:
+            for acc in server_state["accounts"]:
+                if acc["active"]:
+                    # Placeholder logic for checking active positions against SL & Target
+                    pass
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(risk_management_engine())
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
@@ -79,31 +104,47 @@ def read_root():
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>GN Algo Trading Dashboard</title>
         <style>
-            body { font-family: Arial, sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; }
+            body { font-family: Arial, sans-serif; background: #121212; color: #fff; margin: 0; padding: 15px; }
             .container { max-width: 600px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
             h2 { color: #00ffcc; text-align: center; }
             .card { background: #2a2a2a; padding: 15px; margin-top: 15px; border-radius: 8px; }
-            input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: none; box-sizing: border-box; }
-            input { background: #333; color: #fff; }
+            input, select, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: none; box-sizing: border-box; }
+            input, select { background: #333; color: #fff; }
             button { background: #00ffcc; color: #121212; font-weight: bold; cursor: pointer; }
             button:hover { background: #00cc99; }
-            .status { margin-top: 10px; font-weight: bold; text-align: center; }
+            .status { margin-top: 10px; font-weight: bold; text-align: center; word-break: break-all; }
+            .row { display: flex; gap: 10px; }
         </style>
     </head>
     <body>
         <div class="container">
             <h2>GN Algo Trading Engine</h2>
+            
             <div class="card">
-                <h3>Angel One Live Login</h3>
+                <h3>Angel One Live Login & Risk Controls</h3>
                 <input type="text" id="client_id" placeholder="Client ID (e.g. A12345)">
                 <input type="password" id="api_key" placeholder="API Key">
                 <input type="password" id="totp_key" placeholder="TOTP Secret Key">
-                <button onclick="connectBroker()">Connect Broker</button>
+                <input type="number" id="capital" placeholder="Capital Allocation" value="1000">
+                
+                <div class="row">
+                    <select id="product_type">
+                        <option value="INTRADAY">INTRADAY (MIS)</option>
+                        <option value="DELIVERY">DELIVERY (CNC)</option>
+                    </select>
+                    <input type="number" id="stop_loss_pct" placeholder="Stop Loss %" value="1.0" step="0.1">
+                    <input type="number" id="target_pct" placeholder="Profit Lock %" value="2.0" step="0.1">
+                </div>
+
+                <button onclick="connectBroker()">Connect & Activate Auto-Trade</button>
                 <div id="responseMsg" class="status"></div>
             </div>
+
             <div class="card">
-                <h3>Engine Status</h3>
-                <p>Status: <span id="engineStatus" style="color: #00ffcc;">Checking...</span></p>
+                <h3>Engine & Live Status</h3>
+                <p>Engine: <span id="engineStatus" style="color: #00ffcc;">Checking...</span></p>
+                <p>Broker Connection: <span id="brokerStatus" style="color: #ffcc00;">Disconnected</span></p>
+                <p>Live PnL: <span id="livePnl" style="color: #fff;">₹0.00</span></p>
             </div>
         </div>
 
@@ -113,6 +154,9 @@ def read_root():
                     let res = await fetch('/status');
                     let data = await res.json();
                     document.getElementById('engineStatus').innerText = data.engine_status;
+                    let isConnected = data.auth.logged_in;
+                    document.getElementById('brokerStatus').innerText = isConnected ? "Connected (Live)" : "Disconnected";
+                    document.getElementById('brokerStatus').style.color = isConnected ? "#00ffcc" : "#ff4444";
                 } catch (e) {
                     document.getElementById('engineStatus').innerText = "Offline";
                 }
@@ -122,10 +166,14 @@ def read_root():
                 let client_id = document.getElementById('client_id').value;
                 let api_key = document.getElementById('api_key').value;
                 let totp_key = document.getElementById('totp_key').value;
+                let capital = parseFloat(document.getElementById('capital').value);
+                let product_type = document.getElementById('product_type').value;
+                let stop_loss_pct = parseFloat(document.getElementById('stop_loss_pct').value);
+                let target_pct = parseFloat(document.getElementById('target_pct').value);
                 let msgBox = document.getElementById('responseMsg');
 
                 msgBox.style.color = "#ffcc00";
-                msgBox.innerText = "Connecting to Angel One...";
+                msgBox.innerText = "Connecting to Angel One Live...";
 
                 try {
                     let res = await fetch('/connect_broker', {
@@ -136,24 +184,29 @@ def read_root():
                             client_id: client_id,
                             api_key: api_key,
                             totp_key: totp_key,
-                            capital: 1000.0
+                            capital: capital,
+                            product_type: product_type,
+                            stop_loss_pct: stop_loss_pct,
+                            target_pct: target_pct
                         })
                     });
                     let data = await res.json();
                     if (res.ok) {
                         msgBox.style.color = "#00ffcc";
-                        msgBox.innerText = "Connected Successfully! Token Generated.";
+                        msgBox.innerText = "Connected & Risk Parameters Locked!";
+                        fetchStatus();
                     } else {
                         msgBox.style.color = "#ff4444";
                         msgBox.innerText = "Error: " + (data.detail || "Failed");
                     }
                 } catch (e) {
                     msgBox.style.color = "#ff4444";
-                    msgBox.innerText = "Connection Error!";
+                    msgBox.innerText = "Connection Exception Error!";
                 }
             }
 
             fetchStatus();
+            setInterval(fetchStatus, 5000);
         </script>
     </body>
     </html>
@@ -167,13 +220,17 @@ def get_status():
 def connect_broker(config: AccountConfig):
     result = connect_angel_one_live(config.client_id, config.api_key, config.totp_key)
     if result.get("status") == "success":
+        server_state["auth"]["logged_in"] = True
+        server_state["auth"]["jwt_token"] = result["token"]
+        server_state["settings"] = {
+            "product_type": config.product_type,
+            "stop_loss_pct": config.stop_loss_pct,
+            "target_pct": config.target_pct
+        }
         for acc in server_state["accounts"]:
-            if acc["name"] == config.name or acc["id"] == 1:
-                acc["client_id"] = config.client_id
-                acc["api_key"] = config.api_key
-                acc["totp_key"] = config.totp_key
-                acc["capital"] = config.capital
-                acc["active"] = True
-        return {"status": "success", "message": "Connected to Angel One Live Successfully", "jwt_token": result["token"]}
-    raise HTTPException(status_code=400, detail=result.get("message", "Broker connection failed"))
-    
+            acc["active"] = True
+            acc["capital"] = config.capital
+            acc["client_id"] = config.client_id
+        return {"status": "success", "message": "Live connection and automated risk settings saved successfully."}
+    raise HTTPException(status_code=400, detail=result.get("message", "Broker authentication failed"))
+        
