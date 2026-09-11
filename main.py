@@ -1,7 +1,7 @@
 import time
 import asyncio
 from datetime import datetime, time as dtime
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import pyotp
@@ -41,13 +41,6 @@ class AccountConfig(BaseModel):
     stop_loss_pct: float = 1.0
     target_pct: float = 2.0
 
-class OrderRequest(BaseModel):
-    symbol: str
-    transaction_type: str  # BUY / SELL
-    quantity: int
-    product_type: str = "INTRADAY"
-    price: float = 0.0
-
 def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
     url = "https://apiconnect.angelbroking.com/rest/auth/angelbroking/user/v1/loginByTotp"
     try:
@@ -66,28 +59,37 @@ def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
         "X-MACAddress": "MAC",
         "X-ApiKey": api_key.strip()
     }
+    payload = {
+        "clientcode": client_id.strip(),
+        "totp": totp
+    }
     try:
-        response = requests.post(url, json={"clientcode": client_id.strip(), "totp": totp}, headers=headers, timeout=10)
-        if not response.text.strip():
-            return {"status": "error", "message": f"Empty response from broker (HTTP {response.status_code})"}
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        if not response.text or not response.text.strip():
+            return {"status": "error", "message": f"Broker returned empty response (HTTP Code: {response.status_code})"}
             
-        res_data = response.json()
+        try:
+            res_data = response.json()
+        except ValueError:
+            return {"status": "error", "message": f"Broker returned non-JSON data: {response.text[:120]}..."}
+
         if res_data.get("status") == True:
             return {"status": "success", "token": res_data["data"]["jwtToken"]}
         else:
-            return {"status": "error", "message": res_data.get("message", "Login failed")}
+            err_msg = res_data.get("message", "Unknown broker error")
+            err_code = res_data.get("errorcode", "")
+            return {"status": "error", "message": f"[{err_code}] {err_msg}"}
+    except requests.exceptions.Timeout:
+        return {"status": "error", "message": "Connection to Angel One timed out."}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"Network Error: {str(e)}"}
 
-# Background Risk Management & Auto-Trading Loop
 async def risk_management_engine():
     while True:
-        await asyncio.sleep(3) # Check every 3 seconds
-        # Yahan par automated stop-loss aur profit target monitoring run hoti hai
+        await asyncio.sleep(3)
         if server_state["auth"]["logged_in"]:
             for acc in server_state["accounts"]:
                 if acc["active"]:
-                    # Placeholder logic for checking active positions against SL & Target
                     pass
 
 @app.on_event("startup")
@@ -119,14 +121,12 @@ def read_root():
     <body>
         <div class="container">
             <h2>GN Algo Trading Engine</h2>
-            
             <div class="card">
                 <h3>Angel One Live Login & Risk Controls</h3>
                 <input type="text" id="client_id" placeholder="Client ID (e.g. A12345)">
                 <input type="password" id="api_key" placeholder="API Key">
                 <input type="password" id="totp_key" placeholder="TOTP Secret Key">
                 <input type="number" id="capital" placeholder="Capital Allocation" value="1000">
-                
                 <div class="row">
                     <select id="product_type">
                         <option value="INTRADAY">INTRADAY (MIS)</option>
@@ -135,11 +135,9 @@ def read_root():
                     <input type="number" id="stop_loss_pct" placeholder="Stop Loss %" value="1.0" step="0.1">
                     <input type="number" id="target_pct" placeholder="Profit Lock %" value="2.0" step="0.1">
                 </div>
-
                 <button onclick="connectBroker()">Connect & Activate Auto-Trade</button>
                 <div id="responseMsg" class="status"></div>
             </div>
-
             <div class="card">
                 <h3>Engine & Live Status</h3>
                 <p>Engine: <span id="engineStatus" style="color: #00ffcc;">Checking...</span></p>
@@ -147,7 +145,6 @@ def read_root():
                 <p>Live PnL: <span id="livePnl" style="color: #fff;">₹0.00</span></p>
             </div>
         </div>
-
         <script>
             async function fetchStatus() {
                 try {
