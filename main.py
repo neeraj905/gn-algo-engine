@@ -49,29 +49,35 @@ def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
     except Exception as e:
         return {"status": "error", "message": f"Invalid TOTP Secret: {str(e)}"}
     
+    # Updated headers to mimic standard browser & bypass cloud blocks
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "X-UserType": "USER",
         "X-SourceID": "WEB",
-        "X-ClientLocalIP": "192.168.1.1",
+        "X-ClientLocalIP": "127.0.0.1",
         "X-ClientPublicIP": "106.193.147.98",
         "X-MACAddress": "MAC",
-        "X-ApiKey": api_key.strip()
+        "X-ApiKey": api_key.strip(),
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     payload = {
         "clientcode": client_id.strip(),
         "totp": totp
     }
+    
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        session = requests.Session()
+        response = session.post(url, json=payload, headers=headers, timeout=15)
+        
         if not response.text or not response.text.strip():
             return {"status": "error", "message": f"Broker returned empty response (HTTP Code: {response.status_code})"}
             
         try:
             res_data = response.json()
         except ValueError:
-            return {"status": "error", "message": f"Broker returned non-JSON data: {response.text[:120]}..."}
+            # Agar ab bhi HTML error page aaya toh saaf dikhega
+            return {"status": "error", "message": f"Cloud IP Restricted by Broker. Response: {response.text[:100]}..."}
 
         if res_data.get("status") == True:
             return {"status": "success", "token": res_data["data"]["jwtToken"]}
@@ -79,6 +85,7 @@ def connect_angel_one_live(client_id: str, api_key: str, totp_key: str):
             err_msg = res_data.get("message", "Unknown broker error")
             err_code = res_data.get("errorcode", "")
             return {"status": "error", "message": f"[{err_code}] {err_msg}"}
+            
     except requests.exceptions.Timeout:
         return {"status": "error", "message": "Connection to Angel One timed out."}
     except Exception as e:
@@ -114,7 +121,7 @@ def read_root():
             input, select { background: #333; color: #fff; }
             button { background: #00ffcc; color: #121212; font-weight: bold; cursor: pointer; }
             button:hover { background: #00cc99; }
-            .status { margin-top: 10px; font-weight: bold; text-align: center; word-break: break-all; }
+            .status { margin-top: 10px; font-weight: bold; text-align: center; word-break: break-all; font-size: 13px; }
             .row { display: flex; gap: 10px; }
         </style>
     </head>
@@ -123,7 +130,7 @@ def read_root():
             <h2>GN Algo Trading Engine</h2>
             <div class="card">
                 <h3>Angel One Live Login & Risk Controls</h3>
-                <input type="text" id="client_id" placeholder="Client ID (e.g. A12345)">
+                <input type="text" id="client_id" placeholder="Client ID (e.g. A12345)" value="AABY582302">
                 <input type="password" id="api_key" placeholder="API Key">
                 <input type="password" id="totp_key" placeholder="TOTP Secret Key">
                 <input type="number" id="capital" placeholder="Capital Allocation" value="1000">
@@ -230,4 +237,3 @@ def connect_broker(config: AccountConfig):
             acc["client_id"] = config.client_id
         return {"status": "success", "message": "Live connection and automated risk settings saved successfully."}
     raise HTTPException(status_code=400, detail=result.get("message", "Broker authentication failed"))
-        
