@@ -1,3 +1,7 @@
 streamlit
 gTTS>=2.3.0
 ffmpeg-python
+opencv-python-headless
+numpy
+insightface
+onnxruntime
