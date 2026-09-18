@@ -1,6 +1,6 @@
 import os
 import subprocess
-from gTTS import gTTS
+from gtts import gTTS
 import streamlit as st
 
 st.set_page_config(page_title="AI Video Studio", layout="centered")
