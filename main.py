@@ -79,11 +79,12 @@ def remove_account(client_id):
     return redirect(url_for('dashboard'))
 
 # =====================================================================
-# 🔒 PARTNER'S MASTER PIN LOCK & MODE TOGGLE CORE ENGINE
+# 🔒 PARTNER'S MASTER PIN LOCK & MODE TOGGLE CORE ENGINE (FIXED)
 # =====================================================================
 import time
 from flask import render_template_string, jsonify, request, make_response
 
+# सुरक्षा सेटिंग्स और स्टेट
 TRADING_MODE = "PAPER"  # डिफ़ॉल्ट रूप से पेपर मोड रहेगा
 PAPER_CAPITAL = 1000.00
 current_balance = PAPER_CAPITAL
@@ -94,7 +95,7 @@ paper_orders = []
 MASTER_PIN = "NEERAJ_KING_SHIELD_2026"
 
 # 🛑 अभेद्य गेटवे स्क्रीन - जब तक सही कोड नहीं, तब तक सब ब्लॉक
-SECURITY_GATE_HTML = f"""
+SECURITY_GATE_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -102,37 +103,36 @@ SECURITY_GATE_HTML = f"""
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🔒 KING SHIELD - SECURITY CHECK</title>
     <style>
-        body {{ font-family: Arial, sans-serif; background-color: #0c0f12; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
-        .lock-box {{ max-width: 400px; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #da3637; text-align: center; box-shadow: 0 0 20px rgba(218,54,55,0.2); }}
-        input {{ width: 85%; padding: 12px; margin: 15px 0; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: white; text-align: center; font-size: 16px; letter-spacing: 2px; }}
-        button {{ background-color: #da3637; color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 92%; font-size: 16px; }}
-        button:hover {{ background-color: #b62223; }}
+        body { font-family: Arial, sans-serif; background-color: #0c0f12; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .lock-box { max-width: 400px; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #da3637; text-align: center; box-shadow: 0 0 20px rgba(218,54,55,0.2); }
+        input { width: 85%; padding: 12px; margin: 15px 0; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: white; text-align: center; font-size: 16px; letter-spacing: 2px; }
+        button { background-color: #da3637; color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 92%; font-size: 16px; }
     </style>
 </head>
 <body>
     <div class="lock-box">
         <h2 style="color: #da3637; margin-top: 0;">🔒 SECURITY ACCESS REQUIRED</h2>
-        <p style="color: #8b949e; font-size: 14px;">यह एप्लीकेशन मिलिट्री-ग्रेड सुरक्षा के अंतर्गत है। आगे बढ़ने के लिए मास्टर पार्टनर कोड दर्ज करें।</p>
+        <p style="color: #8b949e; font-size: 14px;">यह एप्लीकेशन मिलिट्री-ग्रेड सुरक्षा के अंतर्गत है। आगे बढ़ने के लिए मास्टर पार्टनर कोड दर्ज करें.</p>
         <input type="password" id="pincode" placeholder="••••••••••••">
         <button onclick="verifyAccess()">🔗 डिवाइस अनलॉक करें</button>
     </div>
     <script>
-    function verifyAccess() {{
+    function verifyAccess() {
         var pin = document.getElementById("pincode").value;
-        if(pin === "{MASTER_PIN}") {{
-            document.cookie = "partner_auth=" + pin + "; path=/; max-age=31536000"; // 1 साल के लिए डिवाइस लॉक सेव
+        if(pin === "NEERAJ_KING_SHIELD_2026") {
+            document.cookie = "partner_auth=" + pin + "; path=/; max-age=31536000";
             location.reload();
-        }} else {{
+        } else {
             alert("❌ गलत सुरक्षा कोड! एक्सेस ब्लॉक कर दिया गया है।");
-        }}
-    }}
+        }
+    }
     </script>
 </body>
 </html>
 """
 
-# ☰ दोनों पेजों के लिए कॉमन मोबाइल मेनू बार + जादुई ऑन/ऑफ स्विच (HTML/CSS/JS)
-SHARED_MENU_HTML = f"""
+# ☰ दोनों पेजों के लिए कॉमन मोबाइल मेनू बार + जादुई ऑन/ऑफ स्विच
+SHARED_MENU_HTML = """
 <div style="background-color: #1f242c; padding: 15px; text-align: left; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; font-family: Arial, sans-serif;">
     <div style="display: flex; align-items: center;">
         <button onclick="togglePartnerMenu()" style="background: none; border: none; color: #00ff00; font-size: 24px; cursor: pointer; margin-right: 15px;">☰</button>
@@ -144,7 +144,7 @@ SHARED_MENU_HTML = f"""
         <label style="position: relative; display: inline-block; width: 40px; height: 22px;">
             <input type="checkbox" id="modeToggle" onchange="switchTradingMode()" style="opacity: 0; width: 0; height: 0;">
             <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #da3637; transition: .4s; border-radius: 34px;">
-                <span id="toggleSlider" style="position: absolute; content: ''; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                <span id="toggleSlider" style="position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
             </span>
         </label>
     </div>
@@ -157,47 +157,45 @@ SHARED_MENU_HTML = f"""
 </div>
 
 <script>
-function togglePartnerMenu() {{
+function togglePartnerMenu() {
     var menu = document.getElementById("partnerSideMenu");
     menu.style.width = menu.style.width === "250px" ? "0" : "250px";
-}}
+}
 
-function switchTradingMode() {{
+function switchTradingMode() {
     var checkBox = document.getElementById("modeToggle");
     var modeText = document.getElementById("modeText");
     var slider = document.getElementById("toggleSlider");
     var parentSpan = slider.parentElement;
     
-    if (checkBox.checked == true) {{
+    if (checkBox.checked == true) {
         var password = prompt("🚨 सुरक्षा चेतावनी: रियल लाइव ट्रेडिंग मोड सक्रिय करने के लिए कोड दर्ज करें:");
-        if (password === "{MASTER_PIN}") {{
+        if (password === "NEERAJ_KING_SHIELD_2026") {
             modeText.innerText = "REAL LIVE";
             modeText.style.color = "#00ff00";
             parentSpan.style.backgroundColor = "#238636";
             slider.style.transform = "translateX(18px)";
             fetch('/set-mode/REAL');
-        }} else {{
+        } else {
             alert("❌ गलत सुरक्षा कोड! रियल मोड ऑन नहीं हो सकता।");
             checkBox.checked = false;
-        }}
-    } else {{
+        }
+    } else {
         modeText.innerText = "PAPER MODE";
         modeText.style.color = "#8b949e";
         parentSpan.style.backgroundColor = "#da3637";
         slider.style.transform = "translateX(0px)";
         fetch('/set-mode/PAPER');
-    }}
-}}
+    }
+}
 </script>
 """
 
 # 🔒 सुरक्षा गेटकीपर मिडलवेयर (हर पेज पर ताला लगाने के लिए)
 @app.before_request
 def check_security_gate():
-    # कुकी चेक करना कि क्या इस डिवाइस को पहले अनलॉक किया गया है
     auth_cookie = request.cookies.get('partner_auth')
-    if auth_cookie != MASTER_PIN and request.path not in ['/set-mode/PAPER', '/set-mode/REAL'] and not request.path.startswith('/static'):
-        # अगर कोई नया डिवाइस है या कोड मैच नहीं हुआ, तो सीधे लॉक स्क्रीन दिखाओ
+    if auth_cookie != "NEERAJ_KING_SHIELD_2026" and request.path not in ['/set-mode/PAPER', '/set-mode/REAL'] and not request.path.startswith('/static'):
         return render_template_string(SECURITY_GATE_HTML)
 
 @app.route('/set-mode/<mode>')
@@ -260,6 +258,7 @@ def paper_trading_dashboard():
     </html>
     """
 # =====================================================================
+
 
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
