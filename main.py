@@ -79,29 +79,27 @@ def remove_account(client_id):
     return redirect(url_for('dashboard'))
 
 # =====================================================================
-# 🔒 PARTNER'S MASTER PIN LOCK & MODE TOGGLE CORE ENGINE (FIXED)
+# 🎛️ PARTNER'S 2-IN-1 MASTER SWITCH CORE ENGINE (SINGLE SCREEN UI)
 # =====================================================================
 import time
-from flask import render_template_string, jsonify, request, make_response
+from flask import render_template_string, jsonify, request
 
-# सुरक्षा सेटिंग्स और स्टेट
-TRADING_MODE = "PAPER"  # डिफ़ॉल्ट रूप से पेपर मोड रहेगा
+TRADING_MODE = "PAPER"  # डिफ़ॉल्ट
 PAPER_CAPITAL = 1000.00
 current_balance = PAPER_CAPITAL
 net_pnl = 0.00
 paper_orders = []
 
-# 🔑 आपका गुप्त परमानेंट मास्टर कोड (जिसके बिना ऐप नहीं खुलेगा)
 MASTER_PIN = "NEERAJ_KING_SHIELD_2026"
 
-# 🛑 अभेद्य गेटवे स्क्रीन - जब तक सही कोड नहीं, तब तक सब ब्लॉक
+# 🔒 सुरक्षा लॉक स्क्रीन (वही मिलिट्री-ग्रेड ताला)
 SECURITY_GATE_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔒 KING SHIELD - SECURITY CHECK</title>
+    <title>🔒 SECURITY CHECK</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #0c0f12; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         .lock-box { max-width: 400px; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #da3637; text-align: center; box-shadow: 0 0 20px rgba(218,54,55,0.2); }
@@ -123,7 +121,7 @@ SECURITY_GATE_HTML = """
             document.cookie = "partner_auth=" + pin + "; path=/; max-age=31536000";
             location.reload();
         } else {
-            alert("❌ गलत सुरक्षा कोड! एक्सेस ब्लॉक कर दिया गया है।");
+            alert("❌ गलत सुरक्षा कोड!");
         }
     }
     </script>
@@ -131,67 +129,87 @@ SECURITY_GATE_HTML = """
 </html>
 """
 
-# ☰ दोनों पेजों के लिए कॉमन मोबाइल मेनू बार + जादुई ऑन/ऑफ स्विच
-SHARED_MENU_HTML = """
-<div style="background-color: #1f242c; padding: 15px; text-align: left; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; font-family: Arial, sans-serif;">
-    <div style="display: flex; align-items: center;">
-        <button onclick="togglePartnerMenu()" style="background: none; border: none; color: #00ff00; font-size: 24px; cursor: pointer; margin-right: 15px;">☰</button>
-        <span style="color: white; font-weight: bold; font-size: 16px;">🤖 KING SHIELD ULTRA v2.0</span>
-    </div>
+# 🎛️ जादुई 2-in-1 कंट्रोल पैनल (HTML/CSS जो मुख्य पेज को ट्रांसफॉर्म करेगा)
+COMBINED_DASHBOARD_HTML = """
+<div style="font-family: Arial, sans-serif; background-color: #0c0f12; color: #e1e6eb; text-align: center; padding: 0; margin: 0;">
     
-    <div style="display: flex; align-items: center; background: #0d1117; padding: 5px 12px; border-radius: 20px; border: 1px solid #30363d;">
-        <span id="modeText" style="color: #8b949e; font-size: 12px; font-weight: bold; margin-right: 8px;">PAPER MODE</span>
-        <label style="position: relative; display: inline-block; width: 40px; height: 22px;">
-            <input type="checkbox" id="modeToggle" onchange="switchTradingMode()" style="opacity: 0; width: 0; height: 0;">
-            <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #da3637; transition: .4s; border-radius: 34px;">
-                <span id="toggleSlider" style="position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
-            </span>
-        </label>
+    <!-- 🎛️ मुख्य पेज के मास्टर स्विच बटन -->
+    <div style="display: flex; justify-content: center; gap: 10px; background: #1f242c; padding: 15px; border-bottom: 1px solid #30363d;">
+        <button id="btnLiveMode" onclick="showSection('LIVE')" style="background-color: #21262d; color: white; border: 1px solid #30363d; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; flex: 1; max-width: 200px;">🏦 Live Demat Account</button>
+        <button id="btnPaperMode" onclick="showSection('PAPER')" style="background-color: #238636; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; flex: 1; max-width: 200px;">📊 Live Paper Trading</button>
     </div>
-</div>
 
-<div id="partnerSideMenu" style="height: 100%; width: 0; position: fixed; z-index: 9999; top: 0; left: 0; background-color: #161b22; overflow-x: hidden; transition: 0.3s; padding-top: 60px; border-right: 1px solid #30363d; font-family: Arial, sans-serif;">
-    <a href="javascript:void(0)" onclick="togglePartnerMenu()" style="position: absolute; top: 10px; right: 22px; font-size: 30px; color: #8b949e; text-decoration: none;">&times;</a>
-    <a href="/" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #e1e6eb; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">🏦 Live Demat Account</a>
-    <a href="/paper-trading" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #00ff00; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">📊 Live Paper Trading</a>
+    <!-- 📊 सेक्शन 2: पेपर ट्रेडिंग (यह मुख्य पेज पर ही दिखेगा) -->
+    <div id="paperTradingSection" class="container" style="max-width: 800px; margin: 20px auto; background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; display: block;">
+        <h1 style="color:#00ff00; margin-top: 0;">🤖 ROBOT PAPER TRADING</h1>
+        <p style="color:#8b949e; font-size:14px;">₹1000 के फिक्स बजट पर सुरक्षित पेपर ट्रेडिंग मोड</p>
+        
+        <div style="display: flex; justify-content: space-around; background: #21262d; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #30363d;">
+            <div>Starting: <span style="color:#0088cc; font-weight:bold;">₹1000.00</span></div>
+            <div>Today P&L: <span id="uiPnl" style="color:#00ff00; font-weight:bold;">₹{NET_PNL}</span></div>
+            <div>Balance: <span id="uiBalance" style="color:#00ff00; font-weight:bold;">₹{CURRENT_BALANCE}</span></div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; background: #0d1117;">
+            <thead>
+                <tr style="background: #161b22; color: #00ff00;">
+                    <th style="border: 1px solid #30363d; padding: 12px;">Time</th>
+                    <th style="border: 1px solid #30363d; padding: 12px;">Index</th>
+                    <th style="border: 1px solid #30363d; padding: 12px;">Type</th>
+                    <th style="border: 1px solid #30363d; padding: 12px;">Qty</th>
+                    <th style="border: 1px solid #30363d; padding: 12px;">Price</th>
+                    <th style="border: 1px solid #30363d; padding: 12px;">Amount</th>
+                    <th style="border: 1px solid #30363d; padding: 12px;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {ORDERS_ROWS}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-function togglePartnerMenu() {
-    var menu = document.getElementById("partnerSideMenu");
-    menu.style.width = menu.style.width === "250px" ? "0" : "250px";
-}
+function showSection(mode) {
+    var liveBox = document.querySelector('.container:not(#paperTradingSection)');
+    var paperBox = document.getElementById('paperTradingSection');
+    var btnLive = document.getElementById('btnLiveMode');
+    var btnPaper = document.getElementById('btnPaperMode');
 
-function switchTradingMode() {
-    var checkBox = document.getElementById("modeToggle");
-    var modeText = document.getElementById("modeText");
-    var slider = document.getElementById("toggleSlider");
-    var parentSpan = slider.parentElement;
-    
-    if (checkBox.checked == true) {
-        var password = prompt("🚨 सुरक्षा चेतावनी: रियल लाइव ट्रेडिंग मोड सक्रिय करने के लिए कोड दर्ज करें:");
+    if (mode === 'LIVE') {
+        var password = prompt("🚨 सुरक्षा चेतावनी: रियल लाइव डीमैट मोड चालू करने के लिए सुरक्षा कोड दर्ज करें:");
         if (password === "NEERAJ_KING_SHIELD_2026") {
-            modeText.innerText = "REAL LIVE";
-            modeText.style.color = "#00ff00";
-            parentSpan.style.backgroundColor = "#238636";
-            slider.style.transform = "translateX(18px)";
+            if(liveBox) liveBox.style.display = 'block';
+            paperBox.style.display = 'none';
+            btnLive.style.backgroundColor = '#238636';
+            btnLive.style.border = 'none';
+            btnPaper.style.backgroundColor = '#21262d';
+            btnPaper.style.border = '1px solid #30363d';
             fetch('/set-mode/REAL');
         } else {
             alert("❌ गलत सुरक्षा कोड! रियल मोड ऑन नहीं हो सकता।");
-            checkBox.checked = false;
         }
     } else {
-        modeText.innerText = "PAPER MODE";
-        modeText.style.color = "#8b949e";
-        parentSpan.style.backgroundColor = "#da3637";
-        slider.style.transform = "translateX(0px)";
+        if(liveBox) liveBox.style.display = 'none';
+        paperBox.style.display = 'block';
+        btnPaper.style.backgroundColor = '#238636';
+        btnPaper.style.border = 'none';
+        btnLive.style.backgroundColor = '#21262d';
+        btnLive.style.border = '1px solid #30363d';
         fetch('/set-mode/PAPER');
     }
 }
+
+// डिफ़ॉल्ट रूप से ऐप खुलते ही लाइव वाले फॉर्म को छुपाओ और पेपर मोड दिखाओ
+window.addEventListener('DOMContentLoaded', (event) => {
+    setTimeout(function(){
+        var liveBox = document.querySelector('.container:not(#paperTradingSection)');
+        if(liveBox) liveBox.style.display = 'none';
+    }, 100);
+});
 </script>
 """
 
-# 🔒 सुरक्षा गेटकीपर मिडलवेयर (हर पेज पर ताला लगाने के लिए)
 @app.before_request
 def check_security_gate():
     auth_cookie = request.cookies.get('partner_auth')
@@ -206,59 +224,41 @@ def set_trading_mode(mode):
     return jsonify({"status": "success", "current_mode": TRADING_MODE})
 
 @app.after_request
-def inject_menu_into_first_page(response):
+def inject_transformer_into_main_page(response):
+    """यह आपके पुराने मुख्य पेज को बिना मिटाए उसमें दोनों बटन और पेपर ट्रेडिंग सेक्शन को इंजेक्ट कर देगा"""
+    global current_balance, net_pnl, paper_orders
     if request.path == '/' and response.response and isinstance(response.response, bytes):
         try:
             html_content = response.response.decode('utf-8')
-            if "<body>" in html_content and SHARED_MENU_HTML not in html_content:
-                updated_html = html_content.replace("<body>", f"<body>{SHARED_MENU_HTML}")
+            if "<body>" in html_content and "paperTradingSection" not in html_content:
+                orders_html = "".join([f"<tr><td style='border: 1px solid #30363d; padding: 12px;'>{o['time']}</td><td style='border: 1px solid #30363d; padding: 12px;'><strong>{o['index']}</strong></td><td style='border: 1px solid #30363d; padding: 12px;'>{o['type']}</td><td style='border: 1px solid #30363d; padding: 12px;'>{o['shares']}</td><td style='border: 1px solid #30363d; padding: 12px;'>₹{o['price']:.2f}</td><td style='border: 1px solid #30363d; padding: 12px;'>₹{o['amount']:.2f}</td><td style='border: 1px solid #30363d; padding: 12px; color:#00ff00;'>{o['status']} ✅</td></tr>" for o in paper_orders]) if paper_orders else "<tr><td colspan='7' style='border: 1px solid #30363d; padding: 12px; text-align:center; color:#888;'>आज अभी तक कोई आदेश नहीं लिया गया है।</td></tr>"
+                
+                formatted_transformer = COMBINED_DASHBOARD_HTML.format(
+                    NET_PNL=f"{net_pnl:.2f}",
+                    CURRENT_BALANCE=f"{current_balance:.2f}",
+                    ORDERS_ROWS=orders_html
+                )
+                
+                # मुख्य बॉडी के अंदर पूरा टू-इन-वन ढांचा फिट करना
+                updated_html = html_content.replace("<body>", f"<body>{formatted_transformer}")
                 response.set_data(updated_html.encode('utf-8'))
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Transformation Error: {e}")
     return response
 
-@app.route('/paper-trading')
-def paper_trading_dashboard():
-    global current_balance, net_pnl, paper_orders
-    orders_html = "".join([f"<tr><td>{o['time']}</td><td><strong>{o['index']}</strong></td><td>{o['type']}</td><td>{o['shares']}</td><td>₹{o['price']:.2f}</td><td>₹{o['amount']:.2f}</td><td style='color:#00ff00;'>{o['status']} ✅</td></tr>" for o in paper_orders]) if paper_orders else "<tr><td colspan='7' style='text-align:center; color:#888;'>आज अभी तक कोई आदेश नहीं लिया गया है।</td></tr>"
-    pnl_color = "#00ff00" if net_pnl >= 0 else "#ff3333"
-    
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>King Shield - Security Core</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; background-color: #0c0f12; color: #e1e6eb; text-align: center; margin: 0; padding: 0; }}
-            .container {{ max-width: 800px; margin: 20px auto; background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; }}
-            .status-bar {{ display: flex; justify-content: space-around; background: #21262d; padding: 15px; border-radius: 8px; margin: 20px 0; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-            th, td {{ border: 1px solid #30363d; padding: 12px; text-align: center; }}
-            th {{ color: #00ff00; }}
-        </style>
-    </head>
-    <body>
-        {SHARED_MENU_HTML}
-        <div class="container">
-            <h1 style="color:#00ff00;">🤖 PAGE 2: LIVE PAPER TRADING</h1>
-            <p style="color:#8b949e;">सुरक्षा गेटकीपर और ऑन/ऑफ स्विच के साथ सुरक्षित डैशबोर्ड</p>
-            <div class="status-bar">
-                <div>Starting Capital: <span style="color:#0088cc;">₹1000.00</span></div>
-                <div>Today's P&L: <span style="color:{pnl_color};">₹{net_pnl:.2f}</span></div>
-                <div>Current Balance: <span style="color:#00ff00;">₹{current_balance:.2f}</span></div>
-            </div>
-            <table>
-                <thead><tr><th>Time</th><th>Index Name</th><th>Order Type</th><th>Shares</th><th>Price</th><th>Amount</th><th>Status</th></tr></thead>
-                <tbody>{orders_html}</tbody>
-            </table>
-        </div>
-    </body>
-    </html>
-    """
+def execute_paper_trade(index_name, trade_type, entry_price, qty=15):
+    global current_balance, net_pnl
+    invested_amount = qty * entry_price
+    if invested_amount > current_balance:
+        return None
+    trade_data = {
+        "time": time.strftime("%I:%M %p"), "index": index_name, "type": trade_type,
+        "shares": qty, "price": entry_price, "amount": invested_amount,
+        "sl": entry_price * 0.90, "target": entry_price * 1.20, "status": "Running 🔄"
+    }
+    paper_orders.append(trade_data)
+    return trade_data
 # =====================================================================
-
 
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
