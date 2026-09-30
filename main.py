@@ -79,56 +79,148 @@ def remove_account(client_id):
     return redirect(url_for('dashboard'))
 
 # =====================================================================
-# 🎛️ PARTNER'S SUPER NAVIGATION MENU ENGINE (PLACE ABOVE IF __NAME__)
+# 🔒 PARTNER'S MASTER PIN LOCK & MODE TOGGLE CORE ENGINE
 # =====================================================================
 import time
+from flask import render_template_string, jsonify, request, make_response
 
+TRADING_MODE = "PAPER"  # डिफ़ॉल्ट रूप से पेपर मोड रहेगा
 PAPER_CAPITAL = 1000.00
 current_balance = PAPER_CAPITAL
 net_pnl = 0.00
 paper_orders = []
 
-# ☰ दोनों पेजों के लिए कॉमन मोबाइल मेनू बार (HTML/CSS)
-SHARED_MENU_HTML = """
-<div style="background-color: #1f242c; padding: 15px; text-align: left; display: flex; align-items: center; border-bottom: 1px solid #30363d;">
-    <button onclick="togglePartnerMenu()" style="background: none; border: none; color: #00ff00; font-size: 24px; cursor: pointer; margin-right: 15px;">☰</button>
-    <span style="color: white; font-weight: bold; font-size: 16px;">KING SHIELD ULTRA MENU</span>
+# 🔑 आपका गुप्त परमानेंट मास्टर कोड (जिसके बिना ऐप नहीं खुलेगा)
+MASTER_PIN = "NEERAJ_KING_SHIELD_2026"
+
+# 🛑 अभेद्य गेटवे स्क्रीन - जब तक सही कोड नहीं, तब तक सब ब्लॉक
+SECURITY_GATE_HTML = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔒 KING SHIELD - SECURITY CHECK</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; background-color: #0c0f12; color: white; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
+        .lock-box {{ max-width: 400px; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #da3637; text-align: center; box-shadow: 0 0 20px rgba(218,54,55,0.2); }}
+        input {{ width: 85%; padding: 12px; margin: 15px 0; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: white; text-align: center; font-size: 16px; letter-spacing: 2px; }}
+        button {{ background-color: #da3637; color: white; padding: 12px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 92%; font-size: 16px; }}
+        button:hover {{ background-color: #b62223; }}
+    </style>
+</head>
+<body>
+    <div class="lock-box">
+        <h2 style="color: #da3637; margin-top: 0;">🔒 SECURITY ACCESS REQUIRED</h2>
+        <p style="color: #8b949e; font-size: 14px;">यह एप्लीकेशन मिलिट्री-ग्रेड सुरक्षा के अंतर्गत है। आगे बढ़ने के लिए मास्टर पार्टनर कोड दर्ज करें।</p>
+        <input type="password" id="pincode" placeholder="••••••••••••">
+        <button onclick="verifyAccess()">🔗 डिवाइस अनलॉक करें</button>
+    </div>
+    <script>
+    function verifyAccess() {{
+        var pin = document.getElementById("pincode").value;
+        if(pin === "{MASTER_PIN}") {{
+            document.cookie = "partner_auth=" + pin + "; path=/; max-age=31536000"; // 1 साल के लिए डिवाइस लॉक सेव
+            location.reload();
+        }} else {{
+            alert("❌ गलत सुरक्षा कोड! एक्सेस ब्लॉक कर दिया गया है।");
+        }}
+    }}
+    </script>
+</body>
+</html>
+"""
+
+# ☰ दोनों पेजों के लिए कॉमन मोबाइल मेनू बार + जादुई ऑन/ऑफ स्विच (HTML/CSS/JS)
+SHARED_MENU_HTML = f"""
+<div style="background-color: #1f242c; padding: 15px; text-align: left; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; font-family: Arial, sans-serif;">
+    <div style="display: flex; align-items: center;">
+        <button onclick="togglePartnerMenu()" style="background: none; border: none; color: #00ff00; font-size: 24px; cursor: pointer; margin-right: 15px;">☰</button>
+        <span style="color: white; font-weight: bold; font-size: 16px;">🤖 KING SHIELD ULTRA v2.0</span>
+    </div>
+    
+    <div style="display: flex; align-items: center; background: #0d1117; padding: 5px 12px; border-radius: 20px; border: 1px solid #30363d;">
+        <span id="modeText" style="color: #8b949e; font-size: 12px; font-weight: bold; margin-right: 8px;">PAPER MODE</span>
+        <label style="position: relative; display: inline-block; width: 40px; height: 22px;">
+            <input type="checkbox" id="modeToggle" onchange="switchTradingMode()" style="opacity: 0; width: 0; height: 0;">
+            <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #da3637; transition: .4s; border-radius: 34px;">
+                <span id="toggleSlider" style="position: absolute; content: ''; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+            </span>
+        </label>
+    </div>
 </div>
 
-<div id="partnerSideMenu" style="height: 100%; width: 0; position: fixed; z-index: 9999; top: 0; left: 0; background-color: #161b22; overflow-x: hidden; transition: 0.3s; padding-top: 60px; border-right: 1px solid #30363d;">
+<div id="partnerSideMenu" style="height: 100%; width: 0; position: fixed; z-index: 9999; top: 0; left: 0; background-color: #161b22; overflow-x: hidden; transition: 0.3s; padding-top: 60px; border-right: 1px solid #30363d; font-family: Arial, sans-serif;">
     <a href="javascript:void(0)" onclick="togglePartnerMenu()" style="position: absolute; top: 10px; right: 22px; font-size: 30px; color: #8b949e; text-decoration: none;">&times;</a>
     <a href="/" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #e1e6eb; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">🏦 Live Demat Account</a>
     <a href="/paper-trading" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #00ff00; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">📊 Live Paper Trading</a>
 </div>
 
 <script>
-function togglePartnerMenu() {
+function togglePartnerMenu() {{
     var menu = document.getElementById("partnerSideMenu");
-    if (menu.style.width === "250px") {
-        menu.style.width = "0";
-    } else {
-        menu.style.width = "250px";
-    }
-}
+    menu.style.width = menu.style.width === "250px" ? "0" : "250px";
+}}
+
+function switchTradingMode() {{
+    var checkBox = document.getElementById("modeToggle");
+    var modeText = document.getElementById("modeText");
+    var slider = document.getElementById("toggleSlider");
+    var parentSpan = slider.parentElement;
+    
+    if (checkBox.checked == true) {{
+        var password = prompt("🚨 सुरक्षा चेतावनी: रियल लाइव ट्रेडिंग मोड सक्रिय करने के लिए कोड दर्ज करें:");
+        if (password === "{MASTER_PIN}") {{
+            modeText.innerText = "REAL LIVE";
+            modeText.style.color = "#00ff00";
+            parentSpan.style.backgroundColor = "#238636";
+            slider.style.transform = "translateX(18px)";
+            fetch('/set-mode/REAL');
+        }} else {{
+            alert("❌ गलत सुरक्षा कोड! रियल मोड ऑन नहीं हो सकता।");
+            checkBox.checked = false;
+        }}
+    } else {{
+        modeText.innerText = "PAPER MODE";
+        modeText.style.color = "#8b949e";
+        parentSpan.style.backgroundColor = "#da3637";
+        slider.style.transform = "translateX(0px)";
+        fetch('/set-mode/PAPER');
+    }}
+}}
 </script>
 """
 
-def execute_paper_trade(index_name, trade_type, entry_price, qty=15):
-    global current_balance, net_pnl
-    invested_amount = qty * entry_price
-    if invested_amount > current_balance:
-        return None
-    trade_data = {
-        "time": time.strftime("%I:%M %p"), "index": index_name, "type": trade_type,
-        "shares": qty, "price": entry_price, "amount": invested_amount,
-        "sl": entry_price * 0.90, "target": entry_price * 1.20, "status": "Running 🔄"
-    }
-    paper_orders.append(trade_data)
-    return trade_data
+# 🔒 सुरक्षा गेटकीपर मिडलवेयर (हर पेज पर ताला लगाने के लिए)
+@app.before_request
+def check_security_gate():
+    # कुकी चेक करना कि क्या इस डिवाइस को पहले अनलॉक किया गया है
+    auth_cookie = request.cookies.get('partner_auth')
+    if auth_cookie != MASTER_PIN and request.path not in ['/set-mode/PAPER', '/set-mode/REAL'] and not request.path.startswith('/static'):
+        # अगर कोई नया डिवाइस है या कोड मैच नहीं हुआ, तो सीधे लॉक स्क्रीन दिखाओ
+        return render_template_string(SECURITY_GATE_HTML)
+
+@app.route('/set-mode/<mode>')
+def set_trading_mode(mode):
+    global TRADING_MODE
+    if mode in ["PAPER", "REAL"]:
+        TRADING_MODE = mode
+    return jsonify({"status": "success", "current_mode": TRADING_MODE})
+
+@app.after_request
+def inject_menu_into_first_page(response):
+    if request.path == '/' and response.response and isinstance(response.response, bytes):
+        try:
+            html_content = response.response.decode('utf-8')
+            if "<body>" in html_content and SHARED_MENU_HTML not in html_content:
+                updated_html = html_content.replace("<body>", f"<body>{SHARED_MENU_HTML}")
+                response.set_data(updated_html.encode('utf-8'))
+        except Exception:
+            pass
+    return response
 
 @app.route('/paper-trading')
 def paper_trading_dashboard():
-    """पेज 2: मोबाइल मेनू बार के साथ पेपर ट्रेडिंग स्क्रीन"""
     global current_balance, net_pnl, paper_orders
     orders_html = "".join([f"<tr><td>{o['time']}</td><td><strong>{o['index']}</strong></td><td>{o['type']}</td><td>{o['shares']}</td><td>₹{o['price']:.2f}</td><td>₹{o['amount']:.2f}</td><td style='color:#00ff00;'>{o['status']} ✅</td></tr>" for o in paper_orders]) if paper_orders else "<tr><td colspan='7' style='text-align:center; color:#888;'>आज अभी तक कोई आदेश नहीं लिया गया है।</td></tr>"
     pnl_color = "#00ff00" if net_pnl >= 0 else "#ff3333"
@@ -139,7 +231,7 @@ def paper_trading_dashboard():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>King Shield - Paper Trading</title>
+        <title>King Shield - Security Core</title>
         <style>
             body {{ font-family: Arial, sans-serif; background-color: #0c0f12; color: #e1e6eb; text-align: center; margin: 0; padding: 0; }}
             .container {{ max-width: 800px; margin: 20px auto; background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; }}
@@ -153,7 +245,7 @@ def paper_trading_dashboard():
         {SHARED_MENU_HTML}
         <div class="container">
             <h1 style="color:#00ff00;">🤖 PAGE 2: LIVE PAPER TRADING</h1>
-            <p style="color:#8b949e;">मेनू बार के साथ जुड़ा हुआ नया स्वतंत्र ट्रैकर</p>
+            <p style="color:#8b949e;">सुरक्षा गेटकीपर और ऑन/ऑफ स्विच के साथ सुरक्षित डैशबोर्ड</p>
             <div class="status-bar">
                 <div>Starting Capital: <span style="color:#0088cc;">₹1000.00</span></div>
                 <div>Today's P&L: <span style="color:{pnl_color};">₹{net_pnl:.2f}</span></div>
