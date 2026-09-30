@@ -79,7 +79,7 @@ def remove_account(client_id):
     return redirect(url_for('dashboard'))
 
 # =====================================================================
-# 🧠 PARTNER'S MASTER PLUGINS ENGINE (PLACE ABOVE IF __NAME__ LINE)
+# 🎛️ PARTNER'S SUPER NAVIGATION MENU ENGINE (PLACE ABOVE IF __NAME__)
 # =====================================================================
 import time
 
@@ -88,61 +88,61 @@ current_balance = PAPER_CAPITAL
 net_pnl = 0.00
 paper_orders = []
 
+# ☰ दोनों पेजों के लिए कॉमन मोबाइल मेनू बार (HTML/CSS)
+SHARED_MENU_HTML = """
+<div style="background-color: #1f242c; padding: 15px; text-align: left; display: flex; align-items: center; border-bottom: 1px solid #30363d;">
+    <button onclick="togglePartnerMenu()" style="background: none; border: none; color: #00ff00; font-size: 24px; cursor: pointer; margin-right: 15px;">☰</button>
+    <span style="color: white; font-weight: bold; font-size: 16px;">KING SHIELD ULTRA MENU</span>
+</div>
+
+<div id="partnerSideMenu" style="height: 100%; width: 0; position: fixed; z-index: 9999; top: 0; left: 0; background-color: #161b22; overflow-x: hidden; transition: 0.3s; padding-top: 60px; border-right: 1px solid #30363d;">
+    <a href="javascript:void(0)" onclick="togglePartnerMenu()" style="position: absolute; top: 10px; right: 22px; font-size: 30px; color: #8b949e; text-decoration: none;">&times;</a>
+    <a href="/" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #e1e6eb; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">🏦 Live Demat Account</a>
+    <a href="/paper-trading" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #00ff00; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">📊 Live Paper Trading</a>
+</div>
+
+<script>
+function togglePartnerMenu() {
+    var menu = document.getElementById("partnerSideMenu");
+    if (menu.style.width === "250px") {
+        menu.style.width = "0";
+    } else {
+        menu.style.width = "250px";
+    }
+}
+</script>
+"""
+
 def execute_paper_trade(index_name, trade_type, entry_price, qty=15):
     global current_balance, net_pnl
     invested_amount = qty * entry_price
     if invested_amount > current_balance:
         return None
-    stop_loss = entry_price * 0.90
-    target_price = entry_price * 1.20
     trade_data = {
-        "time": time.strftime("%I:%M %p"),
-        "index": index_name,
-        "type": trade_type,
-        "shares": qty,
-        "price": entry_price,
-        "amount": invested_amount,
-        "sl": stop_loss,
-        "target": target_price,
-        "status": "Running 🔄"
+        "time": time.strftime("%I:%M %p"), "index": index_name, "type": trade_type,
+        "shares": qty, "price": entry_price, "amount": invested_amount,
+        "sl": entry_price * 0.90, "target": entry_price * 1.20, "status": "Running 🔄"
     }
     paper_orders.append(trade_data)
     return trade_data
 
-def auto_315_market_close():
-    global current_balance
-    for order in paper_orders:
-        if order["status"] == "Running 🔄":
-            order["status"] = "Fast Exited (0ms) 🔴"
-
-def is_market_open():
-    current_time = time.strftime("%H:%M")
-    if "09:15" <= current_time <= "15:15":
-        return True
-    return False
-
-def is_market_day():
-    current_day = time.strftime("%A")
-    if current_day in ["Saturday", "Sunday"]:
-        return False
-    return is_market_open()
-
 @app.route('/paper-trading')
 def paper_trading_dashboard():
-    """यह बिल्कुल नया स्वतंत्र पेज है, जिससे पुराना पेज डिस्टर्ब नहीं होगा"""
+    """पेज 2: मोबाइल मेनू बार के साथ पेपर ट्रेडिंग स्क्रीन"""
     global current_balance, net_pnl, paper_orders
     orders_html = "".join([f"<tr><td>{o['time']}</td><td><strong>{o['index']}</strong></td><td>{o['type']}</td><td>{o['shares']}</td><td>₹{o['price']:.2f}</td><td>₹{o['amount']:.2f}</td><td style='color:#00ff00;'>{o['status']} ✅</td></tr>" for o in paper_orders]) if paper_orders else "<tr><td colspan='7' style='text-align:center; color:#888;'>आज अभी तक कोई आदेश नहीं लिया गया है।</td></tr>"
     pnl_color = "#00ff00" if net_pnl >= 0 else "#ff3333"
+    
     return f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>King Shield - Paper Trading Screen</title>
+        <title>King Shield - Paper Trading</title>
         <style>
-            body {{ font-family: Arial, sans-serif; background-color: #0c0f12; color: #e1e6eb; text-align: center; margin: 0; padding: 20px; }}
-            .container {{ max-width: 800px; margin: auto; background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; }}
+            body {{ font-family: Arial, sans-serif; background-color: #0c0f12; color: #e1e6eb; text-align: center; margin: 0; padding: 0; }}
+            .container {{ max-width: 800px; margin: 20px auto; background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; }}
             .status-bar {{ display: flex; justify-content: space-around; background: #21262d; padding: 15px; border-radius: 8px; margin: 20px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
             th, td {{ border: 1px solid #30363d; padding: 12px; text-align: center; }}
@@ -150,9 +150,10 @@ def paper_trading_dashboard():
         </style>
     </head>
     <body>
+        {SHARED_MENU_HTML}
         <div class="container">
             <h1 style="color:#00ff00;">🤖 PAGE 2: LIVE PAPER TRADING</h1>
-            <p style="color:#8b949e;">पुराने कोड को बिना छुए बनाया गया नया स्वतंत्र ट्रैकर</p>
+            <p style="color:#8b949e;">मेनू बार के साथ जुड़ा हुआ नया स्वतंत्र ट्रैकर</p>
             <div class="status-bar">
                 <div>Starting Capital: <span style="color:#0088cc;">₹1000.00</span></div>
                 <div>Today's P&L: <span style="color:{pnl_color};">₹{net_pnl:.2f}</span></div>
