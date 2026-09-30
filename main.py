@@ -267,5 +267,33 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
 
+# =====================================================================
+# 🎛️ PARTNER'S MASTER SWITCH LAYOUT ENGINE (ADD AT THE VERY BOTTOM)
+# =====================================================================
+
+# पुराने पहले पेज के HTML के ऊपर मेनू बार को साफ और फिक्स तरीके से जोड़ने के लिए नया मिडलवेयर
+@app.after_request
+def inject_clean_menu(response):
+    if request.path == '/' and response.response and isinstance(response.response, bytes):
+        try:
+            html_content = response.response.decode('utf-8')
+            # यह आपके पहले पेज पर दोनों जादुई मास्टर बटन फिट कर देगा
+            custom_menu = """
+            <div style="display: flex; justify-content: center; gap: 10px; background: #1f242c; padding: 15px; border-bottom: 1px solid #30363d; font-family: Arial, sans-serif;">
+                <button onclick="var p=prompt('🚨 सुरक्षा कोड दर्ज करें:'); if(p==='NEERAJ_KING_SHIELD_2026'){ fetch('/set-mode/REAL'); alert('🏦 Live mode activated!'); } else { alert('❌ Wrong code!'); }" style="background-color: #238636; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">🏦 Live Demat Account</button>
+                <a href="/paper-trading" style="background-color: #21262d; color: white; border: 1px solid #30363d; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none;">📊 Live Paper Trading</a>
+            </div>
+            """
+            body_tag = "<body>" if "<body>" in html_content else "<body"
+            if body_tag in html_content and "Live Paper Trading" not in html_content:
+                if body_tag == "<body>":
+                    updated_html = html_content.replace("<body>", f"<body>{custom_menu}")
+                else:
+                    updated_html = html_content.replace("<body", f"{custom_menu}<body")
+                response.set_data(updated_html.encode('utf-8'))
+        except Exception as e:
+            print(f"Menu Error: {e}")
+    return response
+# =====================================================================
 
     
