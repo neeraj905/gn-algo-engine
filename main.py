@@ -159,3 +159,55 @@ try:
 except Exception as e:
     print(f"⚠️ Extension Error: {e}")
 # =====================================================================
+
+# =====================================================================
+# 📊 पार्टनर का दूसरा गुप्त पेज: लाइव पेपर ट्रेडिंग डैशबोर्ड स्क्रीन
+# =====================================================================
+
+@app.route('/paper-trading')
+def paper_trading_dashboard():
+    """यह बिल्कुल नया स्वतंत्र पेज है, जिससे पुराना पेज डिस्टर्ब नहीं होगा"""
+    global current_balance, net_pnl, paper_orders
+    
+    # ऑर्डर्स को टेबल में बदलना
+    orders_html = "".join([f"<tr><td>{o['time']}</td><td><strong>{o['index']}</strong></td><td>{o['type']}</td><td>{o['shares']}</td><td>₹{o['price']:.2f}</td><td>₹{o['amount']:.2f}</td><td style='color:#00ff00;'>{o['status']} ✅</td></tr>" for o in paper_orders]) if paper_orders else "<tr><td colspan='7' style='text-align:center; color:#888;'>आज अभी तक कोई ऑर्डर नहीं लिया गया है।</td></tr>"
+    pnl_color = "#00ff00" if net_pnl >= 0 else "#ff3333"
+
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>King Shield - Paper Trading Screen</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; background-color: #0c0f12; color: #e1e6eb; text-align: center; margin: 0; padding: 20px; }}
+            .container {{ max-width: 800px; margin: auto; background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; }}
+            .status-bar {{ display: flex; justify-content: space-around; background: #21262d; padding: 15px; border-radius: 8px; margin: 20px 0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+            th, td {{ border: 1px solid #30363d; padding: 12px; text-align: center; }}
+            th {{ color: #00ff00; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1 style="color:#00ff00;">🤖 PAGE 2: LIVE PAPER TRADING</h1>
+            <p style="color:#8b949e;">पुराने कोड को बिना छुए बनाया गया नया स्वतंत्र ट्रैकर</p>
+            
+            <div class="status-bar">
+                <div>Starting Capital: <span style="color:#0088cc;">₹1000.00</span></div>
+                <div>Today's P&L: <span style="color:{pnl_color};">₹{net_pnl:.2f}</span></div>
+                <div>Current Balance: <span style="color:#00ff00;">₹{current_balance:.2f}</span></div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr><th>Time</th><th>Index Name</th><th>Order Type</th><th>Shares</th><th>Price</th><th>Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody>{orders_html}</tbody>
+            </table>
+        </div>
+    </body>
+    </html>
+    """
+    
