@@ -225,12 +225,12 @@ def set_trading_mode(mode):
 
 @app.after_request
 def inject_transformer_into_main_page(response):
-    """यह आपके पुराने मुख्य पेज को बिना मिटाए उसमें दोनों बटन और पेपर ट्रेडिंग सेक्शन को इंजेक्ट कर देगा"""
     global current_balance, net_pnl, paper_orders
     if request.path == '/' and response.response and isinstance(response.response, bytes):
         try:
             html_content = response.response.decode('utf-8')
-            if "<body>" in html_content and "paperTradingSection" not in html_content:
+            body_tag = "<body>" if "<body>" in html_content else "<body"
+            if body_tag in html_content and "paperTradingSection" not in html_content:
                 orders_html = "".join([f"<tr><td style='border: 1px solid #30363d; padding: 12px;'>{o['time']}</td><td style='border: 1px solid #30363d; padding: 12px;'><strong>{o['index']}</strong></td><td style='border: 1px solid #30363d; padding: 12px;'>{o['type']}</td><td style='border: 1px solid #30363d; padding: 12px;'>{o['shares']}</td><td style='border: 1px solid #30363d; padding: 12px;'>₹{o['price']:.2f}</td><td style='border: 1px solid #30363d; padding: 12px;'>₹{o['amount']:.2f}</td><td style='border: 1px solid #30363d; padding: 12px; color:#00ff00;'>{o['status']} ✅</td></tr>" for o in paper_orders]) if paper_orders else "<tr><td colspan='7' style='border: 1px solid #30363d; padding: 12px; text-align:center; color:#888;'>आज अभी तक कोई आदेश नहीं लिया गया है।</td></tr>"
                 
                 formatted_transformer = COMBINED_DASHBOARD_HTML.format(
@@ -239,8 +239,10 @@ def inject_transformer_into_main_page(response):
                     ORDERS_ROWS=orders_html
                 )
                 
-                # मुख्य बॉडी के अंदर पूरा टू-इन-वन ढांचा फिट करना
-                updated_html = html_content.replace("<body>", f"<body>{formatted_transformer}")
+                if body_tag == "<body>":
+                    updated_html = html_content.replace("<body>", f"<body>{formatted_transformer}")
+                else:
+                    updated_html = html_content.replace("<body", f"{formatted_transformer}<body")
                 response.set_data(updated_html.encode('utf-8'))
         except Exception as e:
             print(f"Transformation Error: {e}")
