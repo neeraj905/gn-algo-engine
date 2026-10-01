@@ -3,6 +3,32 @@ from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
+# =====================================================================
+# ☰ LINE 5: MASTER NAVIGATION (नीरज भाई का परमानेंट मेनू बार)
+# =====================================================================
+SHARED_NAV_MENU = """
+<div style="background-color: #1f242c; padding: 15px; text-align: left; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #30363d; font-family: Arial, sans-serif;">
+    <div style="display: flex; align-items: center;">
+        <button onclick="toggleKingMenu()" style="background: none; border: none; color: #00ff00; font-size: 24px; cursor: pointer; margin-right: 15px;">☰</button>
+        <span style="color: white; font-weight: bold; font-size: 16px;">🤖 KING SHIELD ULTRA v2.0</span>
+    </div>
+    <div style="color: #8b949e; font-size: 12px; font-weight: bold; background: #0d1117; padding: 5px 12px; border-radius: 20px; border: 1px solid #30363d;">
+        🟢 SECURITY ACTIVE
+    </div>
+</div>
+<div id="kingSidePanel" style="height: 100%; width: 0; position: fixed; z-index: 9999; top: 0; left: 0; background-color: #161b22; overflow-x: hidden; transition: 0.3s; padding-top: 60px; border-right: 1px solid #30363d; font-family: Arial, sans-serif;">
+    <a href="javascript:void(0)" onclick="toggleKingMenu()" style="position: absolute; top: 10px; right: 22px; font-size: 30px; color: #8b949e; text-decoration: none;">&times;</a>
+    <a href="/" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #e1e6eb; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">🏦 Live Demat Account</a>
+    <a href="/paper-trading" style="padding: 15px 25px; text-decoration: none; font-size: 18px; color: #00ff00; display: block; border-bottom: 1px solid #21262d; font-weight: bold;">📊 Live Paper Trading</a>
+</div>
+<script>
+function toggleKingMenu() {
+    var menu = document.getElementById("kingSidePanel");
+    menu.style.width = menu.style.width === "250px" ? "0" : "250px";
+}
+</script>
+"""
+
 # जुड़े हुए डीमैट खातों को स्टोर करने के लिए लिस्ट
 connected_accounts = []
 
@@ -33,6 +59,7 @@ def dashboard():
         </style>
     </head>
     <body>
+    {SHARED_NAV_MENU}
         <div class="container">
             <h1>🤖 KING SHIELD ULTRA v2.0</h1>
             <p>India's No. 1 Secure Algo-Robot Platform</p>
