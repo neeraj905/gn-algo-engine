@@ -232,6 +232,74 @@ def execute_paper_trade(index_name, trade_type, entry_price, qty=15):
     return trade_data
 # =====================================================================
 
+# =====================================================================
+# 🔍 BANK NIFTY 5-MIN BREAKOUT SCANNER ENGINE & DUMMY TRIGGER
+# =====================================================================
+# नीरज भाई का लाइव स्कैनर लूप - जो हर सेकंड मार्केट को स्कैन करेगा
+
+# ब्रेकआउट के लिए शुरुआती वेरिएबल्स
+first_5m_high = 0.00
+first_5m_low = 0.00
+is_candle_scanned = False
+scanned_index = "BANKNIFTY"
+
+def run_live_market_scanner(current_price):
+    """यह रोबोट का असली सेंसर है जो लाइव प्राइस को स्कैन करके फैसला लेता है"""
+    global first_5m_high, first_5m_low, is_candle_scanned
+    
+    # सुबह 09:15 से 09:20 की कैंडल स्कैनिंग (डमी भाव सेटिंग्स)
+    if not is_candle_scanned:
+        first_5m_high = current_price + 40.00  # डमी हाई स्तर
+        first_5m_low = current_price - 40.00   # डमी लो स्तर
+        is_candle_scanned = True
+        print(f"🎯 स्कैनर सेंसर सक्रिय! {scanned_index} का रेंज नोट किया: High={first_5m_high}, Low={first_5m_low}")
+        return "RANGE_SET"
+
+    # 09:20 के बाद का लाइव सेंसर ट्रैकिंग
+    if is_candle_scanned:
+        # अगर लाइव भाव सुबह के हाई को तोड़कर ऊपर भागे -> CALL (CE) खरीदें
+        if current_price > first_5m_high:
+            order = execute_paper_trade(scanned_index, "BUY CALL 📈", current_price, qty=15)
+            if order:
+                is_candle_scanned = False # ओवर-ट्रेडिंग रोकने के लिए लॉक
+                return "CE_TRIGGERED"
+        
+        # अगर लाइव भाव सुबह के लो को तोड़कर नीचे गिरे -> PUT (PE) खरीदें
+        elif current_price < first_5m_low:
+            order = execute_paper_trade(scanned_index, "BUY PUT 📉", current_price, qty=15)
+            if order:
+                is_candle_scanned = False # ओवर-ट्रेडिंग रोकने के लिए लॉक
+                return "PE_TRIGGERED"
+                
+    return "SCANNING"
+
+# ⚡ चेकिंग के लिए डमी टेस्ट बटन रूट (ताकि नीरज भाई खुद बटन दबाकर चेक कर सकें)
+@app.route('/trigger-test-trade/<direction>')
+def trigger_test_trade(direction):
+    """नीरज भाई की चेकिंग के लिए नकली लाइव मार्केट आंदोलन जनरेटर"""
+    global first_5m_high, first_5m_low, is_candle_scanned
+    
+    # मान लेते हैं बैंकनिफ्टी का बेस भाव 52000 चल रहा है
+    base_price = 52000.00
+    
+    if direction == "init":
+        is_candle_scanned = False
+        run_live_market_scanner(base_price)
+        return jsonify({"status": "Scanner Range Set!", "High": first_5m_high, "Low": first_5m_low})
+        
+    elif direction == "high":
+        trigger_price = first_5m_high + 10.00 if first_5m_high > 0 else base_price + 50.00
+        run_live_market_scanner(trigger_price)
+        return jsonify({"status": "High Broken! Call Order Sent to Table.", "Price": trigger_price})
+        
+    elif direction == "low":
+        trigger_price = first_5m_low - 10.00 if first_5m_low > 0 else base_price - 50.00
+        run_live_market_scanner(trigger_price)
+        return jsonify({"status": "Low Broken! Put Order Sent to Table.", "Price": trigger_price})
+
+    return jsonify({"status": "Invalid Direction"})
+# =====================================================================
+
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
     port = int(os.environ.get("PORT", 5000))
