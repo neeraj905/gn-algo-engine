@@ -144,7 +144,7 @@ SECURITY_GATE_HTML = """
     <script>
     function verifyAccess() {
         var pin = document.getElementById("pincode").value;
-        if(pin === "NEERAJ_KING_SHIELD_2026") {
+        if(pin === "DELETE") {
             document.cookie = "partner_auth=" + pin + "; path=/; max-age=31536000";
             location.reload();
         } else {
