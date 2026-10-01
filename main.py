@@ -160,7 +160,7 @@ SECURITY_GATE_HTML = """
 @app.before_request
 def check_security_gate():
     auth_cookie = request.cookies.get('partner_auth')
-    if auth_cookie != "NEERAJ_KING_SHIELD_2026" and request.path not in ['/set-mode/PAPER', '/set-mode/REAL'] and not request.path.startswith('/static'):
+    if auth_cookie != "DELETE" and request.path not in ['/set-mode/PAPER', '/set-mode/REAL'] and not request.path.startswith('/static'):
         return render_template_string(SECURITY_GATE_HTML)
 
 @app.route('/set-mode/<mode>')
@@ -196,6 +196,7 @@ def paper_trading_dashboard():
         </style>
     </head>
     <body>
+    {SHARED_NAV_MENU}
         <div class="menu-bar">
             <button onclick="var p=prompt('🚨 सुरक्षा कोड दर्ज करें:'); if(p==='NEERAJ_KING_SHIELD_2026'){{ location.href='/'; }} else {{ alert('❌ Wrong code!'); }}" class="menu-btn">🏦 Live Demat Account</button>
             <a href="/paper-trading" class="menu-btn" style="background-color: #238636; border: none;">📊 Live Paper Trading</a>
