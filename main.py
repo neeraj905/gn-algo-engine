@@ -70,11 +70,24 @@ def dashboard():
             <a href="#" class="btn btn-stop">PANIC STOP</a>
             
             <h3>🏦 डीमैट खाता प्रबंधन (Demat Management)</h3>
-            <form action="/link-account" method="POST">
-                <input type="text" name="client_id" placeholder="Angel One Client ID (जैसे: N12345)" required><br>
-                <input type="text" name="api_key" placeholder="Angel One API Key" required><br>
-                <input type="text" name="totp_key" placeholder="Angel One TOTP Smart Key" required><br>
-                <button type="submit" class="btn btn-link">🔗 खाता जोड़ें (Link Account)</button>
+                        <form action="/link-account" method="POST">
+                <!-- 🏦 Tradetron स्टाइल ब्रोकर चुनने का विकल्प -->
+                <select name="broker_name" style="width: 80%; padding: 12px; margin: 8px 0; border-radius: 5px; border: 1px solid #30363d; background: #0d1117; color: white; font-weight: bold;" required>
+                    <option value="" disabled selected>अपना ब्रोकर चुनें (Select Broker)</option>
+                    <option value="ANGEL_ONE">🏦 Angel One</option>
+                    <option value="ZERODHA">🏹 Zerodha (Kite)</option>
+                    <option value="KOTAK_NEO">👑 Kotak Neo</option>
+                    <option value="UPSTOX">⚡ Upstox</option>
+                </select><br>
+                
+                <input type="text" name="client_id" placeholder="Client ID / User ID" style="width: 80%; padding: 12px; margin: 6px 0; border-radius: 5px; border: 1px solid #30363d; background: #0d1117; color: white;" required><br>
+                <input type="text" name="api_key" placeholder="API Key / App Key" style="width: 80%; padding: 12px; margin: 6px 0; border-radius: 5px; border: 1px solid #30363d; background: #0d1117; color: white;" required><br>
+                
+                <!-- 🔐 नीरज भाई का स्पेशल 4 or 6 Digit MPIN बॉक्स -->
+                <input type="password" name="mpin" placeholder="MPIN (4 or 6 Digits)" maxlength="6" style="width: 80%; padding: 12px; margin: 6px 0; border-radius: 5px; border: 1px solid #30363d; background: #0d1117; color: white;" required><br>
+                
+                <input type="text" name="totp_key" placeholder="TOTP Smart Key (Secret Key)" style="width: 80%; padding: 12px; margin: 6px 0; border-radius: 5px; border: 1px solid #30363d; background: #0d1117; color: white;" required><br>
+                <button type="submit" style="width: 80%; padding: 12px; margin: 15px 0; background-color: #0088cc; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">🔗 खाता जोड़ें (Link Account)</button>
             </form>
 
             <h3>📋 जुड़े हुए लाइव खाते</h3>
