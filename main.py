@@ -463,9 +463,17 @@ def link_multi_broker_account():
 # =====================================================================
 # नीरज भाई का लाइव भाव इंजन - जो नेशनल स्टॉक एक्सचेंज (NSE) से सीधे सिंक होगा
 
-from smartapi import SmartConnect
 import threading
+import subprocess
+import sys
 
+# 🛡️ नीरज भाई का ऑटो-लाइब्रेरी इंस्टॉलेशन गार्ड (रेंडर को घुटने टेकने पर मजबूर करेगा)
+try:
+    from smartapi import SmartConnect
+except ModuleNotFoundError:
+    print("⚠️ SmartAPI नहीं मिला! किंग शील्ड इसे ज़बरदस्ती अभी इंस्टॉल कर रहा है...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "smartapi-python"])
+    from smartapi import SmartConnect
 live_market_price = 52000.00  # डिफ़ॉल्ट लाइव भाव
 is_feed_active = False
 
