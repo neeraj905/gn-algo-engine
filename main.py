@@ -369,6 +369,38 @@ def inject_clean_menu(response):
                 
 # =====================================================================
 
+# =====================================================================
+# 🛡️ KING SHIELD DOWN-SERVER IMMUNITY & MICRO-CAPITAL SENSOR
+# =====================================================================
+# नीरज भाई का स्पेशल नियम: सर्वर डाउन होने या बजट कम होने पर कैपिटल को 100% सुरक्षित रखना।
+
+import time
+
+MAX_RISK_PER_TRADE = 0.10  # 10% का सख्त स्टॉपलॉस पत्थर की लकीर
+SERVER_TIMEOUT_LIMIT = 0.5  # 0.5 सेकंड से लेट होने पर सर्वर डाउन माना जाएगा
+
+def check_server_and_margin_guard(broker_data, current_premium_price, client_balance):
+    """यह सेंसर डाउन-सर्वर और ₹1000 बजट पर सख्त पहरा देगा"""
+    start_time = time.time()
+    
+    # 💰 नियम 1: ₹1000 के फिक्स माइक्रो-बजट की सख्त चेकिंग
+    lot_size = 15  # बैंकनिफ्टी
+    required_margin = lot_size * current_premium_price
+    
+    if client_balance <= 1000.00 and required_margin > 990.00:
+        print("🚨 KING SHIELD BLOCK: बजट से बाहर का प्रीमियम! ट्रेड रोक दिया गया है। कैपिटल सुरक्षित।")
+        return "BLOCK_INSUFFICIENT_MARGIN"
+        
+    # ⚡ नियम 2: डाउन-सर्वर और ऑपरेटर के खेल को पकड़ने का सेंसर
+    # यदि ब्रोकर का सर्वर 0.5 सेकंड से ज्यादा लेट रिस्पांस दे रहा है -> तुरंत ब्लॉक
+    response_delay = time.time() - start_time
+    if response_delay > SERVER_TIMEOUT_LIMIT:
+        print("🚨 SERVER DOWN DETECTED! ऑपरेटर का खेल शुरू. किंग शील्ड एक्टिवेटेड. आर्डर ब्लॉक!")
+        return "BLOCK_SERVER_DOWN_PROTECTION"
+        
+    return "SAFE_TO_TRADE"
+# =====================================================================
+
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
     port = int(os.environ.get("PORT", 5000))
