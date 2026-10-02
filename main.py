@@ -337,17 +337,7 @@ def trigger_test_trade(direction):
     res = make_response(jsonify(response_data))
     res.set_cookie('partner_auth', 'DELETE', max_age=31536000, path='/')
     return res
-# =====================================================================
-                
-# =====================================================================
-
-if __name__ == '__main__':
-    # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-
-# =====================================================================
-# 🎛️ PARTNER'S MASTER SWITCH LAYOUT ENGINE (ADD AT THE VERY BOTTOM)
+    # 🎛️ PARTNER'S MASTER SWITCH LAYOUT ENGINE (ADD AT THE VERY BOTTOM)
 # =====================================================================
 
 # पुराने पहले पेज के HTML के ऊपर मेनू बार को साफ और फिक्स तरीके से जोड़ने के लिए नया मिडलवेयर
@@ -374,5 +364,15 @@ def inject_clean_menu(response):
             print(f"Menu Error: {e}")
     return response
 # =====================================================================
+
+# =====================================================================
+                
+# =====================================================================
+
+if __name__ == '__main__':
+    # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
+            
 
     
