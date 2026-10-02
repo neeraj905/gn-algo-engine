@@ -1,4 +1,4 @@
 flask
-smartapi-python
-kiteconnect
+smartapi-python==1.4.1
+kiteconnect==4.2.0
 requests
