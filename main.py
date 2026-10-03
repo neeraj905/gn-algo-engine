@@ -452,7 +452,7 @@ def link_multi_broker_account():
         "status": login_status
     })
     
-    return redirect(url_for('dashboard'))
+    return redirect('/')
 # =====================================================================
 
 # =====================================================================
