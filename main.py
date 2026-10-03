@@ -30,8 +30,6 @@ function toggleKingMenu() {
 """
 
 # जुड़े हुए डीमैट खातों को स्टोर करने के लिए लिस्ट
-connected_accounts = []
-
 @app.route('/')
 def dashboard():
     """मुख्य किंग शील्ड अल्ट्रा डैशबोर्ड"""
@@ -422,9 +420,9 @@ def check_server_and_margin_guard(broker_data, current_premium_price, client_bal
 @app.route('/link-account', methods=['POST'])
 def link_multi_broker_account():
     """यह इंजन ग्राहक के फॉर्म सबमिट करते ही डायनामिकली ब्रोकर को लिंक करता है"""
-    global connected_accounts
     
     # ग्राहक ने फॉर्म में जो भरा, उसे हवा में कैच करना
+    global connected_accounts
     broker_name = request.form.get('broker_name')
     client_id = request.form.get('client_id')
     api_key = request.form.get('api_key')
