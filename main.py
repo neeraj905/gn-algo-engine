@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-
+connected_accounts = []
 # =====================================================================
 # ☰ LINE 5: MASTER NAVIGATION (नीरज भाई का परमानेंट मेनू बार)
 # =====================================================================
