@@ -3,6 +3,9 @@ from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 connected_accounts = []
+is_feed_active = False
+MARKET_CRASH_SHIELD = True
+SIDEWAYS_TRADE_BLOCK = True
 # =====================================================================
 # ☰ LINE 5: MASTER NAVIGATION (नीरज भाई का परमानेंट मेनू बार)
 # =====================================================================
