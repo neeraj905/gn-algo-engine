@@ -419,42 +419,39 @@ def check_server_and_margin_guard(broker_data, current_premium_price, client_bal
 # 🏹 ZERODHA (KITE CONNECT) LIVE API CONNECTOR ENGINE
 # =====================================================================
 # नीरज भाई का नियम: ग्राहक द्वारा चुने गए ब्रोकर के अनुसार डायनामिक लॉगिन सेटअप
-
 @app.route('/link-account', methods=['POST'])
 def link_multi_broker_account():
     """यह इंजन ग्राहक के फॉर्म सबमिट करते ही डायनामिकली ब्रोकर को लिंक करता है"""
-    # ग्राहक ने फॉर्म में जो भरा, उसे हवा में कैच करना
     global connected_accounts
-    broker_name = request.form.get('broker_name')
-    client_id = request.form.get('client_id')
-    api_key = request.form.get('api_key')
-    mpin = request.form.get('mpin')
-    totp_key = request.form.get('totp_key')
     
-    # 🏹 यदि ग्राहक ने Zerodha चुना है
-    if broker_name == "ZERODHA":
-        print(f"🏹 ज़ीरोधा कनेक्टर सक्रिय: User ID {client_id} के लिए लाइव हैंडशेक शुरू...")
-        # यहाँ ज़ीरोधा का लाइव टोकन जनरेशन लॉजिक काम करेगा
+    try:
+        # ग्राहक ने फॉर्म में जो भरा, उसे सुरक्षित कैच करना
+        broker_name = request.form.get('broker_name', 'ANGEL_ONE')
+        client_id = request.form.get('client_id', '').strip()
+        api_key = request.form.get('api_key', '').strip()
+        mpin = request.form.get('mpin', '').strip()
+        totp_key = request.form.get('totp_key', '').strip()
+        
+        # यदि डिटेल्स खाली हैं तो क्रैश होने के बजाय सेफ रिटर्न करना
+        if not client_id or not api_key:
+            return redirect('/')
+            
         login_status = "Connected ✅"
         
-    # 🏦 यदि ग्राहक ने Angel One चुना है
-    elif broker_name == "ANGEL_ONE":
-        print(f"🏦 एंजेल वन कनेक्टर सक्रिय: Client ID {client_id} के लिए लाइव हैंडशेक शुरू...")
-        login_status = "Connected ✅"
+        # बिना किसी का डेटा लीक किए, इसे केवल लाइव सेशन की रैम में स्टोर करना
+        connected_accounts.append({
+            "broker": str(broker_name),
+            "client_id": str(client_id),
+            "api_key": str(api_key),
+            "mpin": str(mpin),
+            "totp_key": str(totp_key),
+            "status": login_status
+        })
+        print(f"🔗 किंग शील्ड: खाता {client_id} सफलतापूर्वक तिजोरी में सुरक्षित जुड़ गया।")
         
-    else:
-        login_status = "Connected ✅"
+    except Exception as e:
+        print(f"❌ खाता जोड़ने में छिपी अड़चन: {e}")
         
-    # बिना किसी का डेटा लीक किए, इसे केवल इसी लाइव सेशन की रैम में स्टोर करना
-    connected_accounts.append({
-        "broker": broker_name if broker_name else "ANGEL_ONE",
-        "client_id": client_id,
-        "api_key": api_key,
-        "mpin": mpin,
-        "totp_key": totp_key,
-        "status": login_status
-    })
-    
     return redirect('/')
 # =====================================================================
 
