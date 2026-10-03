@@ -420,7 +420,6 @@ def check_server_and_margin_guard(broker_data, current_premium_price, client_bal
 @app.route('/link-account', methods=['POST'])
 def link_multi_broker_account():
     """यह इंजन ग्राहक के फॉर्म सबमिट करते ही डायनामिकली ब्रोकर को लिंक करता है"""
-    
     # ग्राहक ने फॉर्म में जो भरा, उसे हवा में कैच करना
     global connected_accounts
     broker_name = request.form.get('broker_name')
