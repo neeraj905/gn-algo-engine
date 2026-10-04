@@ -2,7 +2,18 @@ import os
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-connected_accounts = []
+import json
+
+# 📂 हार्डडिस्क से परमानेंट खाता लोड करने की तिजोरी
+DB_FILE = "accounts.json"
+def load_permanent_accounts():
+    try:
+        with open(DB_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+connected_accounts = load_permanent_accounts()
 is_feed_active = False
 MARKET_CRASH_SHIELD = True
 SIDEWAYS_TRADE_BLOCK = True
