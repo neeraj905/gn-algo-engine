@@ -482,17 +482,27 @@ def link_multi_broker_account():
 # 📈 KING SHIELD LIVE NSE TICK-BY-TICK MARKET FEED ENGINE
 # =====================================================================
 @app.route('/activate-live-stream')
-def activate_live_stream_engine():
-    """नीरज भाई का अभेद्य लाइव स्ट्रीम कनेक्टर - डमी या रियल दोनों पर बिना एरर के चलेगा"""
-    global is_feed_active
+def activate_live_stream():
+    """नीरज भाई का सिंगल मास्टर लाइव स्ट्रीम कनेक्टर - ब्रोकर डेटा स्ट्रीम को ट्रिगर करेगा"""
+    global connected_accounts, is_feed_active
     
-    try:
-        is_feed_active = True
-        print("📡 किंग शील्ड: लाइव मार्केट टिक-बाय-टिक डेटा पाइपलाइन सफलतापुर्वक एक्टिवेट हो गई।")
-        return {"status": "Live Stream Initiated", "success": True}
-    except Exception as e:
-        print(f"❌ लाइव स्ट्रीम में बारीक अड़चन: {e}")
-        return {"status": "Fallback Implemented", "success": True}
+    if connected_accounts:
+        acc = connected_accounts[-1]
+        broker_name = acc.get('broker', 'ANGEL_ONE')
+        c_id = acc.get('client_id', '')
+        a_key = acc.get('api_key', '')
+        mp_key = acc.get('mpin', '')
+        t_key = acc.get('totp_key', '')
+        
+        try:
+            start_real_broker_data_stream(c_id, a_key, mp_key, t_key, broker_name)
+            return jsonify({"status": "Live Stream Initiated", "success": True})
+        except Exception as e:
+            print(f"❌ लाइव स्ट्रीम ट्रिगर एरर: {e}")
+            return jsonify({"status": "Error", "message": str(e), "success": False})
+            
+    return jsonify({"status": "No Connected Accounts", "success": False})
+# =====================================================================
 
 def run_live_market_scanner(current_price):
     global is_feed_active
@@ -538,23 +548,6 @@ def start_real_broker_data_stream(client_id, api_key, mpin, totp_key, broker_nam
         print(f"❌ लाइव डेटा फीडर एरर: {e}")
         return False
 
-# 🔄 पुराने खाता लिंक रूट को लाइव डेटा फीड से जोड़ना
-@app.route('/activate-live-stream')
-def activate_live_stream():
-    """नीरज भाई की चेकिंग के लिए लाइव डेटा पाइपलाइन को ऑन करने का गुप्त बटन"""
-    global connected_accounts
-    if connected_accounts:
-        acc = connected_accounts[-1]
-        success = start_real_broker_data_stream(
-            client_id=acc['client_id'],
-            api_key=acc['api_key'],
-            mpin=acc['mpin'],
-            totp_key=acc['totp_key'],
-            broker_name=acc.get('broker', 'ANGEL_ONE')
-        )
-        return jsonify({"status": "Live Stream Initiated", "success": success})
-    return jsonify({"status": "No Connected Account Found"})
-# =====================================================================
 
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
