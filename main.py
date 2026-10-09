@@ -547,7 +547,14 @@ def start_real_broker_data_stream(client_id, api_key, mpin, totp_key, broker_nam
     except Exception as e:
         print(f"❌ लाइव डेटा फीडर एरर: {e}")
         return False
-
+@app.route('/start-robot-btn', methods=['POST'])
+def start_robot_button_click():
+    """नीरज भाई के हरे बटन का असली चालू कनेक्शन - दबाते ही रोबोट को तुरंत एक्टिवेट करेगा"""
+    global is_feed_active
+    is_feed_active = True
+    print("🚀 नीरज भाई का हरा बटन दबाया गया! रोबोट पूरी ताक़त से लाइव चालू हो चुका है।")
+    return redirect('/')
+                
 
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
