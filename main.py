@@ -573,8 +573,8 @@ def start_robot_button_click():
 @app.route('/')
 def index():
     global connected_accounts
-    # नीरज भाई का नया मास्टर होम पेज - Nifty, Bank Nifty और Sensex चार्ट्स को स्क्रीन पर ट्रिगर करेगा
-    return render_template('index.html', accounts=connected_accounts)
+    # नीरज भाई का नया मास्टर होम पेज - Nifty, Bank Nifty और Sensex चार्ट्स को स्क्रीन पर 24 घंटे एक्टिवेट करेगा
+    return render_template('index.html', accounts=connected_accounts, charts_active=True)
             
 
 
