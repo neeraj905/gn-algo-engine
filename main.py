@@ -569,7 +569,13 @@ def start_robot_button_click():
             print(f"❌ लाइव बटन ट्रिगर एरर: {e}")
             
     return redirect('/')
-        
+    
+      @app.route('/')
+def index():
+    global connected_accounts
+    # नीरज भाई का मास्टर होम पेज एक्टिवेटर - सीधे 3-चार्ट वाली index.html को स्क्रीन पर लोड करेगा
+    return render_template('index.html', accounts=connected_accounts)
+
 
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
