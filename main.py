@@ -409,13 +409,14 @@ def check_server_and_margin_guard(broker_data, current_premium_price, client_bal
     """यह सेंसर डाउन-सर्वर और ₹1000 बजट पर सख्त पहरा देगा"""
     start_time = time.time()
     
-    # 💰 नियम 1: ₹1000 के फिक्स माइक्रो-बजट की सख्त चेकिंग
+    # 💰 नियम 1: ₹3000 के फिक्स बजट की सख्त चेकिंग
     lot_size = 15  # बैंकनिफ्टी
-    required_margin = lot_size * current_premium_price
-    
-    if client_balance <= 1000.00 and required_margin > 990.00:
-        print("🚨 KING SHIELD BLOCK: बजट से बाहर का प्रीमियम! ट्रेड रोक दिया गया है। कैपिटल सुरक्षित।")
+    required_margin = lot_size * current_premium
+        
+    if client_balance <= 3000.00 and required_margin > 3000.00:
+        print("🚨 KING SHIELD BLOCK: बजट से बाहर! ₹3000 की लिमिट पार।")
         return "BLOCK_INSUFFICIENT_MARGIN"
+
         
     # ⚡ नियम 2: डाउन-सर्वर और ऑपरेटर के खेल को पकड़ने का सेंसर
     # यदि ब्रोकर का सर्वर 0.5 सेकंड से ज्यादा लेट रिस्पांस दे रहा है -> तुरंत ब्लॉक
