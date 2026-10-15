@@ -13,37 +13,45 @@
         .sidebar a { padding: 15px 25px; text-decoration: none; font-size: 18px; color: #c9d1d9; display: block; font-weight: bold; }
         .sidebar a:hover { background-color: #21262d; color: #58a6ff; }
         .sidebar .closebtn { position: absolute; top: 10px; right: 25px; font-size: 36px; color: #f85149; }
+        .nav-toggle-btn { background: #21262d; border: 1px solid #30363d; padding: 10px; border-radius: 6px; color: #fff; font-weight: bold; }
+        .active-tab { background: #2ea44f !important; border-color: #2ea44f !important; }
         .stat-grid { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 15px; }
 
-        /* 🎛️ परफेक्ट वर्किंग टॉगल स्विच */
-        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 50px; padding: 10px 25px; cursor: pointer; user-select: none; transition: 0.3s; }
-        .toggle-label { font-size: 1.1rem; font-weight: bold; }
-        .switch-track { width: 70px; height: 34px; background: #21262d; border-radius: 20px; position: relative; border: 1px solid #30363d; transition: 0.3s; }
-        .switch-nob { width: 26px; height: 26px; border-radius: 50px; position: absolute; top: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        /* 🎛️ असली विजुअल टॉगल स्विच की स्टाइलिंग */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 50px; padding: 10px 25px; cursor: pointer; user-select: none; transition: all 0.3s ease; }
+        .toggle-label { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.5px; }
         
-        /* बिल्कुल साफ़ ON/OFF स्टेट्स */
+        .switch-track { width: 70px; height: 34px; background: #21262d; border-radius: 20px; position: relative; border: 1px solid #30363d; transition: 0.3s; }
+        .switch-nob { width: 26px; height: 26px; background: #8b949e; border-radius: 50px; position: absolute; top: 3px; left: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        
+        /* ON स्टेट का लुक */
         .status-on .switch-track { background: rgba(46, 164, 79, 0.15); border-color: #2ea44f; }
         .status-on .switch-nob { left: 38px; background: #2ea44f; box-shadow: 0 0 10px #2ea44f; }
         .status-on .toggle-label { color: #2ea44f; }
 
+        /* OFF स्टेट का लुक */
         .status-off .switch-track { background: rgba(218, 54, 55, 0.15); border-color: #da3637; }
         .status-off .switch-nob { left: 4px; background: #da3637; box-shadow: 0 0 10px #da3637; }
         .status-off .toggle-label { color: #da3637; }
-
-        .position-row { border-bottom: 1px solid #21262d; padding: 12px 0; }
-        .position-row:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
 
+<div id="kingSidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeKingMenu()">&times;</a>
+    <a href="/">📊 मुख्य लाइव चार्ट्स</a>
+    <a href="/paper-trading">📈 लाइव पेपर ट्रेडिंग (₹3000)</a>
+</div>
+
 <div class="container my-3">
-    <!-- हेडर -->
+    <!-- 🛡️ टॉप हेडर बेल्ट -->
     <div class="d-flex align-items-center justify-content-between mb-4">
-        <h4 class="m-0 fw-bold text-white">🤖 KING SHIELD DASHBOARD</h4>
-        <span class="badge bg-success">● DEMO LIVE MODE</span>
+        <button class="menu-btn" onclick="openKingMenu()">☰</button>
+        <h4 class="m-0 fw-bold text-white">🤖 KING SHIELD ULTRA v2.0</h4>
+        <span class="badge bg-success">● DEMO MODE ACTIVE</span>
     </div>
 
-    <!-- 🎛️ मास्टर स्विच (अब 100% वर्किंग) -->
+    <!-- 🎛️ MASTER ON/OFF TOGGLE SWITCH -->
     <div class="master-box py-3">
         <div id="robot-toggle-row" class="toggle-container status-on" onclick="handleToggleClick()">
             <span id="toggle-text" class="toggle-label">⚡ ROBOT STATUS: ACTIVE (ON)</span>
@@ -53,52 +61,48 @@
         </div>
     </div>
 
-    <!-- 📊 मुख्य 3-कॉलम ग्रिड -->
+    <!-- 📊 असली 3-कॉलग ग्रिड डैशबोर्ड -->
     <div class="master-box">
         <div class="row text-center g-2">
-            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Starting Capital:</small><span class="fw-bold text-primary fs-6">₹3000.00</span></div></div>
-            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Total P&L:</small><span id="live-pnl" class="fw-bold text-success fs-6">₹0.00</span></div></div>
-            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Current Balance:</small><span id="live-balance" class="fw-bold text-success fs-6">₹3000.00</span></div></div>
+            <div class="col-4">
+                <div class="stat-grid">
+                    <small class="text-secondary d-block">Starting Capital:</small>
+                    <span class="fw-bold text-primary fs-6">₹3000.00</span>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-grid">
+                    <small class="text-secondary d-block">Today's P&L:</small>
+                    <span id="live-pnl" class="fw-bold text-success fs-6">₹0.00</span>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-grid">
+                    <small class="text-secondary d-block">Current Balance:</small>
+                    <span id="live-balance" class="fw-bold text-success fs-6">₹3000.00</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 🎯 LIVE POSITIONS CARD -->
-    <h6 class="text-warning fw-bold mb-2 font-monospace">🎯 LIVE OPEN POSITIONS (All India Indices)</h6>
-    <div class="master-box py-2">
-        <div class="position-row d-flex justify-content-between align-items-center">
-            <div><span class="badge bg-primary me-2">NIFTY 50</span><span class="text-white fw-bold small">24250 CALL (CE)</span></div>
-            <div class="text-end"><span id="nifty-pnl" class="fw-bold text-success">₹0.00</span><small class="text-secondary d-block" style="font-size:11px;">Qty: 50 | BUY</small></div>
-        </div>
-        <div class="position-row d-flex justify-content-between align-items-center">
-            <div><span class="badge bg-info text-dark me-2">BANKNIFTY</span><span class="text-white fw-bold small">52100 PUT (PE)</span></div>
-            <div class="text-end"><span id="bank-pnl" class="fw-bold text-danger">₹0.00</span><small class="text-secondary d-block" style="font-size:11px;">Qty: 15 | BUY</small></div>
-        </div>
-        <div class="position-row d-flex justify-content-between align-items-center">
-            <div><span class="badge bg-success me-2">FINNIFTY</span><span class="text-white fw-bold small">23800 CALL (CE)</span></div>
-            <div class="text-end"><span id="fin-pnl" class="fw-bold text-success">₹0.00</span><small class="text-secondary d-block" style="font-size:11px;">Qty: 40 | BUY</small></div>
-        </div>
-        <div class="position-row d-flex justify-content-between align-items-center">
-            <div><span class="badge bg-warning text-dark me-2">MIDCPNIFTY</span><span class="text-white fw-bold small">12600 CALL (CE)</span></div>
-            <div class="text-end"><span id="mid-pnl" class="fw-bold text-success">₹0.00</span><small class="text-secondary d-block" style="font-size:11px;">Qty: 75 | BUY</small></div>
-        </div>
-        <div class="position-row d-flex justify-content-between align-items-center">
-            <div><span class="badge bg-danger me-2">SENSEX</span><span class="text-white fw-bold small">80300 CALL (CE)</span></div>
-            <div class="text-end"><span id="sensex-pnl" class="fw-bold text-success">₹0.00</span><small class="text-secondary d-block" style="font-size:11px;">Qty: 10 | BUY</small></div>
-        </div>
-    </div>
-
-    <!-- 📋 HISTORY TABLE -->
-    <h6 class="text-success fw-bold mb-2 font-monospace">📋 LIVE ORDER HISTORY</h6>
+    <!-- 📋 आदेशों की असली लाइव ग्रिड टेबल -->
     <div class="master-box p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-dark table-striped m-0 align-middle text-center">
+            <table class="table table-dark table-striped m-0 align-middle text-center" style="border-collapse: collapse;">
                 <thead>
                     <tr class="text-success" style="border-bottom: 2px solid #30363d;">
-                        <th>Time</th><th>Index Name</th><th>Type</th><th>Input (Option)</th><th>Shares</th><th>Price</th><th>Net P&L</th>
+                        <th class="py-3">Time</th>
+                        <th class="py-3">Index Name</th>
+                        <th class="py-3">Order Type</th>
+                        <th class="py-3">Shares</th>
+                        <th class="py-3">Price</th>
+                        <th class="py-3">Amount</th>
                     </tr>
                 </thead>
                 <tbody id="live-orders-body">
-                    <tr><td colspan="7" class="py-4 text-secondary">डेटा लोड हो रहा है...</td></tr>
+                    <tr>
+                        <td colspan="6" class="py-5 text-secondary fs-6">डेटा पाइपलाइन कनेक्ट हो रही है...</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -106,9 +110,12 @@
 </div>
 
 <script>
+function openKingMenu() { document.getElementById("kingSidebar").style.width = "260px"; }
+function closeKingMenu() { document.getElementById("kingSidebar").style.width = "0"; }
+
 let robotActive = true; 
 
-// 🎛️ अब बटन दबाते ही तुरंत काम करेगा और रूप बदलेगा!
+// 🎛️ क्लिक करने पर स्विच को विजुअली खिसकाने और बदलने का लॉजिक
 function handleToggleClick() {
     let row = document.getElementById("robot-toggle-row");
     let text = document.getElementById("toggle-text");
@@ -127,32 +134,43 @@ function handleToggleClick() {
     }
 }
 
-// 🔄 एक्टिवेटेड लाइव रनिंग इंजन
+// 🔄 लाइव डेमो इंजन (केवल तभी काम करेगा जब रोबोट ON होगा)
 setInterval(function() {
-    if (!robotActive) return; // बंद करने पर नंबर एकदम रुक जाएंगे!
+    if (!robotActive) return; 
     
-    let nP = parseFloat((Math.random() * 150 - 40).toFixed(2));
-    let bP = parseFloat((Math.random() * 200 - 100).toFixed(2));
-    let fP = parseFloat((Math.random() * 100 - 20).toFixed(2));
-    let mP = parseFloat((Math.random() * 80 - 30).toFixed(2));
-    let sP = parseFloat((Math.random() * 300 - 50).toFixed(2));
+    let baseCapital = 3000;
+    let randomPnl = (Math.random() * 500 - 150).toFixed(2); 
+    let currentBalance = (baseCapital + parseFloat(randomPnl)).toFixed(2);
     
-    let totalPnl = (nP + bP + fP + mP + sP).toFixed(2);
-    let currentBalance = (3000 + parseFloat(totalPnl)).toFixed(2);
+    let pnlElement = document.getElementById("live-pnl");
+    let balElement = document.getElementById("live-balance");
     
-    // अपडेट विजुअल इंडेक्स
-    document.getElementById("nifty-pnl").innerHTML = (nP >= 0 ? "₹" : "-₹") + Math.abs(nP);
-    document.getElementById("nifty-pnl").className = nP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
-    document.getElementById("bank-pnl").innerHTML = (bP >= 0 ? "₹" : "-₹") + Math.abs(bP);
-    document.getElementById("bank-pnl").className = bP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
-    document.getElementById("fin-pnl").innerHTML = (fP >= 0 ? "₹" : "-₹") + Math.abs(fP);
-    document.getElementById("fin-pnl").className = fP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
-    document.getElementById("mid-pnl").innerHTML = (mP >= 0 ? "₹" : "-₹") + Math.abs(mP);
-    document.getElementById("mid-pnl").className = mP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
-    document.getElementById("sensex-pnl").innerHTML = (sP >= 0 ? "₹" : "-₹") + Math.abs(sP);
-    document.getElementById("sensex-pnl").className = sP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
+    if (randomPnl >= 0) {
+        pnlElement.innerHTML = "₹" + randomPnl;
+        pnlElement.className = "fw-bold text-success fs-6";
+        balElement.className = "fw-bold text-success fs-6";
+    } else {
+        pnlElement.innerHTML = "-₹" + Math.abs(randomPnl);
+        pnlElement.className = "fw-bold text-danger fs-6";
+        balElement.className = "fw-bold text-danger fs-6";
+    }
+    balElement.innerHTML = "₹" + currentBalance;
 
-    document.getElementById("live-pnl").innerHTML = (totalPnl >= 0 ? "₹" : "-₹") + Math.abs(totalPnl);
-    document.getElementById("live-pnl").className = totalPnl >= 0 ? "fw-bold text-success fs-6" : "fw-bold text-danger fs-6";
-    document.getElementById("live-balance").innerHTML = "₹" + currentBalance;
-                
+    let now = new Date().toLocaleTimeString();
+    let orderBody = document.getElementById("live-orders-body");
+    orderBody.innerHTML = `
+        <tr>
+            <td>${now}</td>
+            <td class="text-info fw-bold">NIFTY 50</td>
+            <td><span class="badge bg-success">BUY</span></td>
+            <td>50</td>
+            <td>₹24,250.00</td>
+            <td class="text-success fw-bold">₹3,000.00</td>
+        </tr>
+    `;
+}, 2000);
+</script>
+
+</body>
+    </html>
+    
