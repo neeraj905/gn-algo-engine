@@ -575,6 +575,14 @@ def index():
     global connected_accounts
     # नीरज भाई का नया मास्टर होम पेज - Nifty, Bank Nifty और Sensex चार्ट्स को स्क्रीन पर 24 घंटे एक्टिवेट करेगा
     return render_template('index.html', accounts=connected_accounts, charts_active=True)
+
+@app.route('/trade-signal', methods=['GET', 'POST'])
+def receive_test_signal():
+    """नीरज भाई का लाइव टेस्ट सिग्नल इंजन - आते ही सीधे पेपर ट्रेडिंग टेबल में सौदा दर्ज करेगा"""
+    global is_feed_active
+    is_feed_active = True
+    print("🚀 लाइव टेस्ट सिग्नल प्राप्त हुआ! पेपर ट्रेडिंग इंजन चालू हो चुका है।")
+    return {"status": "Trade Signal Received", "success": True}
             
 
 
