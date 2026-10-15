@@ -45,7 +45,7 @@ function toggleKingMenu() {
 """
 
 # जुड़े हुए डीमैट खातों को स्टोर करने के लिए लिस्ट
-@app.route('/')
+@app.route('/old-page')
 def dashboard():
     """मुख्य किंग शील्ड अल्ट्रा डैशबोर्ड"""
     accounts_html = "".join([f"<tr><td>{acc['client_id']}</td><td style='color:#00ff00;'>Connected ✅</td><td><a href='/remove-account/{acc['client_id']}' style='background-color:#ff5500; color:white; padding:5px 10px; border-radius:5px; text-decoration:none; font-size:12px;'>Remove</a></td></tr>" for acc in connected_accounts]) if connected_accounts else "<tr><td colspan='3' style='text-align:center; color:#888;'>कोई खाता नहीं जुड़ा है</td></tr>"
