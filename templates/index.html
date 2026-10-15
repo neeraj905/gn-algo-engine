@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KING SHIELD ULTRA v2.0 - DASHBOARD</title>
+    <title>KING SHIELD ULTRA v2.0 - PAPER TRADING</title>
     <link rel="stylesheet" href="https://cloudflare.com">
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; margin: 0; }
@@ -13,14 +13,13 @@
         .sidebar a { padding: 15px 25px; text-decoration: none; font-size: 18px; color: #cbd5e1; display: block; font-weight: bold; transition: 0.2s; }
         .sidebar a:hover { background-color: #0f172a; color: #38bdf8; }
         .sidebar .closebtn { position: absolute; top: 10px; right: 25px; font-size: 36px; color: #ef4444; }
-        .chart-container { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 25px; border: 1px solid #334155; }
-        .chart-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: #38bdf8; }
-        .btn-custom { font-weight: bold; padding: 12px 25px; border-radius: 8px; }
+        .trading-card { background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; text-center; margin-bottom: 20px; }
+        .stat-box { background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #475569; }
     </style>
 </head>
 <body>
 
-<!-- 🗂️ कड़क साइडबार मेन्यू बार -->
+<!-- 🗂️ कड़क साइडबार मेन्यू -->
 <div id="kingSidebar" class="sidebar">
     <a href="javascript:void(0)" class="closebtn" onclick="closeKingMenu()">&times;</a>
     <div class="px-3 mb-4 text-center">
@@ -28,62 +27,65 @@
         <hr class="text-secondary">
     </div>
     <a href="/">📊 मुख्य लाइव चार्ट्स</a>
-    <a href="/paper-trading">📈 लाइव पेपर ट्रेडिंग (₹1000)</a>
+    <a href="/paper-trading">📈 लाइव पेपर ट्रेडिंग (₹3000)</a>
 </div>
 
-<!-- 🛡️ टॉप हेडर कंट्रोल रूम -->
+<!-- 🛡️ टॉप हेडर -->
 <div class="master-header clearfix">
     <button class="menu-btn" onclick="openKingMenu()">☰</button>
-    <h3 class="m-0 fw-bold text-info text-center" style="display: inline-block; width: calc(100% - 50px);">🛡️ KING SHIELD ULTRA v2.0</h3>
+    <h3 class="m-0 fw-bold text-info text-center" style="display: inline-block; width: calc(100% - 50px);">🤖 ROBOT PAPER TRADING</h3>
 </div>
 
 <div class="container my-4">
     <div class="text-center mb-4">
-        <p class="text-success fw-bold">● SECURITY ACTIVE | LIVE AUTOPILOT</p>
+        <p class="text-warning font-monospace">₹3000 के फिक्स बजट पर सुरक्षित पेपर ट्रेडिंग मोड</p>
+        <span class="badge bg-success">● SECURITY ACTIVE</span>
     </div>
 
-    <!-- 🕹️ रोबोट ऑन/ऑफ के कड़क बटन -->
-    <div class="row g-3 justify-content-center mb-4">
-        <div class="col-md-4">
-            <form action="/start-robot-btn" method="POST">
-                <button type="submit" class="btn btn-success btn-custom w-100 shadow">🟢 START ROBOT</button>
-            </form>
-        </div>
-        <div class="col-md-4">
-            <button class="btn btn-danger btn-custom w-100 shadow" onclick="alert('Panic Stop Activated!')">🔴 PANIC STOP</button>
+    <!-- 📊 ₹3000 का लाइव बजट डैशबोर्ड -->
+    <div class="trading-card">
+        <div class="row text-center g-3">
+            <div class="col-4">
+                <div class="stat-box">
+                    <small class="text-secondary d-block">Starting Capital</small>
+                    <span class="text-primary fw-bold fs-5">₹3000.00</span>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-box">
+                    <small class="text-secondary d-block">Today's P&L</small>
+                    <span class="text-success fw-bold fs-5">₹0.00</span>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-box">
+                    <small class="text-secondary d-block">Current Balance</small>
+                    <span class="text-success fw-bold fs-5">₹3000.00</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 📊 जुड़े हुए लाइव खाते की स्थिति -->
-    <div class="chart-container text-center">
-        <h4 class="text-warning mb-3">📋 जुड़े हुए लाइव खाते</h4>
+    <!-- 📋 आदेशों की लाइव टेबल -->
+    <div class="trading-card p-0">
         <div class="table-responsive">
-            <table class="table table-dark table-striped align-middle">
+            <table class="table table-dark table-striped m-0 align-middle text-center">
                 <thead>
-                    <tr>
-                        <th>ब्रोकर</th>
-                        <th>क्लाइंट आईडी</th>
-                        <th>स्टेटस</th>
+                    <tr class="text-info">
+                        <th>Time</th>
+                        <th>Index</th>
+                        <th>Type</th>
+                        <th>Shares</th>
+                        <th>Price</th>
+                        <th>Amount</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for acc in accounts %}
                     <tr>
-                        <td class="fw-bold text-info">{{ acc.broker }}</td>
-                        <td>{{ acc.client_id }}</td>
-                        <td><span class="badge bg-success">Connected ✅</span></td>
+                        <td colspan="6" class="py-4 text-secondary">आज अभी तक कोई आदेश नहीं लिया गया है।</td>
                     </tr>
-                    {% endfor %}
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- ==================== 📈 NIFTY 50 LIVE CHART ==================== -->
-    <div class="chart-container">
-        <div class="chart-title">📊 NIFTY 50 LIVE MARKET CHART</div>
-        <div style="height: 400px;">
-            <iframe src="https://tradingview.com" width="100%" height="100%" style="border:none; border-radius: 8px;"></iframe>
         </div>
     </div>
 </div>
@@ -94,5 +96,5 @@ function closeKingMenu() { document.getElementById("kingSidebar").style.width = 
 </script>
 
 </body>
-                </html>
-                
+    </html>
+    
