@@ -6,7 +6,13 @@
     <title>KING SHIELD ULTRA v2.0 - DASHBOARD</title>
     <link rel="stylesheet" href="https://cloudflare.com">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; margin: 0; }
+        .master-header { background: #1e293b; padding: 15px; border-bottom: 2px solid #334155; position: relative; }
+        .menu-btn { font-size: 24px; color: #38bdf8; background: none; border: none; cursor: pointer; float: left; margin-right: 15px; }
+        .sidebar { height: 100%; width: 0; position: fixed; z-index: 9999; top: 0; left: 0; background-color: #1e293b; overflow-x: hidden; transition: 0.3s; padding-top: 60px; border-right: 2px solid #334155; }
+        .sidebar a { padding: 15px 25px; text-decoration: none; font-size: 18px; color: #cbd5e1; display: block; font-weight: bold; transition: 0.2s; }
+        .sidebar a:hover { background-color: #0f172a; color: #38bdf8; }
+        .sidebar .closebtn { position: absolute; top: 10px; right: 25px; font-size: 36px; color: #ef4444; }
         .chart-container { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 25px; border: 1px solid #334155; }
         .chart-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; color: #38bdf8; }
         .btn-custom { font-weight: bold; padding: 12px 25px; border-radius: 8px; }
@@ -14,13 +20,29 @@
 </head>
 <body>
 
+<!-- 🗂️ कड़क साइडबार मेन्यू बार -->
+<div id="kingSidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeKingMenu()">&times;</a>
+    <div class="px-3 mb-4 text-center">
+        <h4 class="text-info fw-bold">🛡️ KING MENU</h4>
+        <hr class="text-secondary">
+    </div>
+    <a href="/">📊 मुख्य लाइव चार्ट्स</a>
+    <a href="/paper-trading">📈 लाइव पेपर ट्रेडिंग (₹1000)</a>
+</div>
+
+<!-- 🛡️ टॉप हेडर कंट्रोल रूम -->
+<div class="master-header clearfix">
+    <button class="menu-btn" onclick="openKingMenu()">☰</button>
+    <h3 class="m-0 fw-bold text-info text-center" style="display: inline-block; width: calc(100% - 50px);">🛡️ KING SHIELD ULTRA v2.0</h3>
+</div>
+
 <div class="container my-4">
-    <!-- 🛡️ टॉप हेडर और लाइव कंट्रोल्स -->
     <div class="text-center mb-4">
-        <h1 class="fw-bold text-info">🛡️ KING SHIELD ULTRA v2.0</h1>
         <p class="text-success fw-bold">● SECURITY ACTIVE | LIVE AUTOPILOT</p>
     </div>
 
+    <!-- 🕹️ रोबोट ऑन/ऑफ के कड़क बटन -->
     <div class="row g-3 justify-content-center mb-4">
         <div class="col-md-4">
             <form action="/start-robot-btn" method="POST">
@@ -57,31 +79,20 @@
         </div>
     </div>
 
-    <!-- ==================== 📈 1. NIFTY 50 LIVE CHART ==================== -->
+    <!-- ==================== 📈 NIFTY 50 LIVE CHART ==================== -->
     <div class="chart-container">
         <div class="chart-title">📊 NIFTY 50 LIVE MARKET CHART</div>
         <div style="height: 400px;">
             <iframe src="https://tradingview.com" width="100%" height="100%" style="border:none; border-radius: 8px;"></iframe>
         </div>
     </div>
-
-    <!-- ==================== 📈 2. BANK NIFTY LIVE CHART ==================== -->
-    <div class="chart-container">
-        <div class="chart-title">🏦 BANK NIFTY LIVE MARKET CHART</div>
-        <div style="height: 400px;">
-            <iframe src="https://tradingview.com" width="100%" height="100%" style="border:none; border-radius: 8px;"></iframe>
-        </div>
-    </div>
-
-    <!-- ==================== 📈 3. SENSEX LIVE CHART ==================== -->
-    <div class="chart-container">
-        <div class="chart-title">🏛️ SENSEX LIVE MARKET CHART</div>
-        <div style="height: 400px;">
-            <iframe src="https://tradingview.com" width="100%" height="100%" style="border:none; border-radius: 8px;"></iframe>
-        </div>
-    </div>
 </div>
 
+<script>
+function openKingMenu() { document.getElementById("kingSidebar").style.width = "280px"; }
+function closeKingMenu() { document.getElementById("kingSidebar").style.width = "0"; }
+</script>
+
 </body>
-  </html>
-  
+                </html>
+                
