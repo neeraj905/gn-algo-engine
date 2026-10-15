@@ -32,7 +32,7 @@
     <div class="d-flex align-items-center justify-content-between mb-4">
         <button class="menu-btn" onclick="openKingMenu()">☰</button>
         <h4 class="m-0 fw-bold text-white">🤖 KING SHIELD ULTRA v2.0</h4>
-        <span class="badge bg-success">● SECURITY ACTIVE</span>
+        <span class="badge bg-success">● DEMO MODE ACTIVE</span>
     </div>
 
     <!-- 🔄 लाइव डीमैट / पेपर ट्रेडिंग स्विच बटन्स -->
@@ -48,7 +48,7 @@
     <!-- 🟢 मुख्य रोबोट लोगो -->
     <div class="text-center mb-4">
         <h1 class="fw-bold text-success" style="font-size: 2.5rem;">🤖 ROBOT PAPER TRADING</h1>
-        <p class="text-secondary font-monospace">₹3000 के फिक्स बजट पर सुरक्षित पेपर ट्रेडिंग मोड</p>
+        <p class="text-warning font-monospace">🔴 लाइव डेटा पाइपलाइन टेस्टिंग (Demo Run)</p>
     </div>
 
     <!-- 📊 असली 3-कॉलम ग्रिड डैशबोर्ड -->
@@ -63,13 +63,13 @@
             <div class="col-4">
                 <div class="stat-grid">
                     <small class="text-secondary d-block">Today's P&L:</small>
-                    <span class="fw-bold text-success fs-6">₹0.00</span>
+                    <span id="live-pnl" class="fw-bold text-success fs-6">₹0.00</span>
                 </div>
             </div>
             <div class="col-4">
                 <div class="stat-grid">
                     <small class="text-secondary d-block">Current Balance:</small>
-                    <span class="fw-bold text-success fs-6">₹3000.00</span>
+                    <span id="live-balance" class="fw-bold text-success fs-6">₹3000.00</span>
                 </div>
             </div>
         </div>
@@ -89,9 +89,9 @@
                         <th class="py-3">Amount</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="live-orders-body">
                     <tr>
-                        <td colspan="6" class="py-5 text-secondary fs-6">आज अभी तक कोई आदेश नहीं लिया गया है।</td>
+                        <td colspan="6" class="py-5 text-secondary fs-6">डेटा पाइपलाइन कनेक्ट हो रही है...</td>
                     </tr>
                 </tbody>
             </table>
@@ -102,8 +102,45 @@
 <script>
 function openKingMenu() { document.getElementById("kingSidebar").style.width = "260px"; }
 function closeKingMenu() { document.getElementById("kingSidebar").style.width = "0"; }
+
+// 🔄 जादुई लाइव डेमो इंजन (बिना पेज रीफ्रेश किए डेटा बदलना)
+setInterval(function() {
+    let baseCapital = 3000;
+    // -150 से +350 के बीच रैंडम प्रॉफिट/लॉस बनाना
+    let randomPnl = (Math.random() * 500 - 150).toFixed(2); 
+    let currentBalance = (baseCapital + parseFloat(randomPnl)).toFixed(2);
+    
+    // स्क्रीन पर वैल्यू को अपडेट करना
+    let pnlElement = document.getElementById("live-pnl");
+    let balElement = document.getElementById("live-balance");
+    
+    if (randomPnl >= 0) {
+        pnlElement.innerHTML = "₹" + randomPnl;
+        pnlElement.className = "fw-bold text-success fs-6";
+        balElement.className = "fw-bold text-success fs-6";
+    } else {
+        pnlElement.innerHTML = "-₹" + Math.abs(randomPnl);
+        pnlElement.className = "fw-bold text-danger fs-6";
+        balElement.className = "fw-bold text-danger fs-6";
+    }
+    balElement.innerHTML = "₹" + currentBalance;
+
+    // टेबल के अंदर डमी लाइव आर्डर इंजेक्ट करना
+    let now = new Date().toLocaleTimeString();
+    let orderBody = document.getElementById("live-orders-body");
+    orderBody.innerHTML = `
+        <tr>
+            <td>${now}</td>
+            <td class="text-info fw-bold">NIFTY 50</td>
+            <td><span class="badge bg-success">BUY</span></td>
+            <td>50</td>
+            <td>₹24,250.00</td>
+            <td class="text-success fw-bold">₹3,000.00</td>
+        </tr>
+    `;
+}, 2000); // हर 2 सेकंड में बदलाव
 </script>
 
 </body>
-    </html>
+            </html>
     
