@@ -16,11 +16,27 @@
         .nav-toggle-btn { background: #21262d; border: 1px solid #30363d; padding: 10px; border-radius: 6px; color: #fff; font-weight: bold; }
         .active-tab { background: #2ea44f !important; border-color: #2ea44f !important; }
         .stat-grid { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 15px; }
+
+        /* 🎛️ असली विजुअल टॉगल स्विच की स्टाइलिंग */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 50px; padding: 10px 25px; cursor: pointer; user-select: none; transition: all 0.3s ease; }
+        .toggle-label { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.5px; }
+        
+        .switch-track { width: 70px; height: 34px; background: #21262d; border-radius: 20px; position: relative; border: 1px solid #30363d; transition: 0.3s; }
+        .switch-nob { width: 26px; height: 26px; background: #8b949e; border-radius: 50px; position: absolute; top: 3px; left: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        
+        /* ON स्टेट का लुक */
+        .status-on .switch-track { background: rgba(46, 164, 79, 0.15); border-color: #2ea44f; }
+        .status-on .switch-nob { left: 38px; background: #2ea44f; box-shadow: 0 0 10px #2ea44f; }
+        .status-on .toggle-label { color: #2ea44f; }
+
+        /* OFF स्टेट का लुक */
+        .status-off .switch-track { background: rgba(218, 54, 55, 0.15); border-color: #da3637; }
+        .status-off .switch-nob { left: 4px; background: #da3637; box-shadow: 0 0 10px #da3637; }
+        .status-off .toggle-label { color: #da3637; }
     </style>
 </head>
 <body>
 
-<!-- 🗂️ कड़क साइडबार मेन्यू बार -->
 <div id="kingSidebar" class="sidebar">
     <a href="javascript:void(0)" class="closebtn" onclick="closeKingMenu()">&times;</a>
     <a href="/">📊 मुख्य लाइव चार्ट्स</a>
@@ -35,23 +51,17 @@
         <span class="badge bg-success">● DEMO MODE ACTIVE</span>
     </div>
 
-    <!-- 🔄 लाइव डीमैट / पेपर ट्रेडिंग स्विच बटन्स -->
-    <div class="row g-2 mb-4 text-center">
-        <div class="col-6">
-            <button class="nav-toggle-btn w-100">🏦 Live Demat Account</button>
-        </div>
-        <div class="col-6">
-            <button class="nav-toggle-btn w-100 active-tab">📊 Live Paper Trading</button>
+    <!-- 🎛️ MASTER ON/OFF TOGGLE SWITCH -->
+    <div class="master-box py-3">
+        <div id="robot-toggle-row" class="toggle-container status-on" onclick="handleToggleClick()">
+            <span id="toggle-text" class="toggle-label">⚡ ROBOT STATUS: ACTIVE (ON)</span>
+            <div class="switch-track">
+                <div id="switch-circle" class="switch-nob">ON</div>
+            </div>
         </div>
     </div>
 
-    <!-- 🟢 मुख्य रोबोट लोगो -->
-    <div class="text-center mb-4">
-        <h1 class="fw-bold text-success" style="font-size: 2.5rem;">🤖 ROBOT PAPER TRADING</h1>
-        <p class="text-warning font-monospace">🔴 लाइव डेटा पाइपलाइन टेस्टिंग (Demo Run)</p>
-    </div>
-
-    <!-- 📊 असली 3-कॉलम ग्रिड डैशबोर्ड -->
+    <!-- 📊 असली 3-कॉलग ग्रिड डैशबोर्ड -->
     <div class="master-box">
         <div class="row text-center g-2">
             <div class="col-4">
@@ -103,14 +113,35 @@
 function openKingMenu() { document.getElementById("kingSidebar").style.width = "260px"; }
 function closeKingMenu() { document.getElementById("kingSidebar").style.width = "0"; }
 
-// 🔄 जादुई लाइव डेमो इंजन (बिना पेज रीफ्रेश किए डेटा बदलना)
+let robotActive = true; 
+
+// 🎛️ क्लिक करने पर स्विच को विजुअली खिसकाने और बदलने का लॉजिक
+function handleToggleClick() {
+    let row = document.getElementById("robot-toggle-row");
+    let text = document.getElementById("toggle-text");
+    let circle = document.getElementById("switch-circle");
+    
+    if (robotActive) {
+        robotActive = false;
+        row.className = "toggle-container status-off";
+        text.innerHTML = "🛑 ROBOT STATUS: PAUSED (OFF)";
+        circle.innerHTML = "OFF";
+    } else {
+        robotActive = true;
+        row.className = "toggle-container status-on";
+        text.innerHTML = "⚡ ROBOT STATUS: ACTIVE (ON)";
+        circle.innerHTML = "ON";
+    }
+}
+
+// 🔄 लाइव डेमो इंजन (केवल तभी काम करेगा जब रोबोट ON होगा)
 setInterval(function() {
+    if (!robotActive) return; 
+    
     let baseCapital = 3000;
-    // -150 से +350 के बीच रैंडम प्रॉफिट/लॉस बनाना
     let randomPnl = (Math.random() * 500 - 150).toFixed(2); 
     let currentBalance = (baseCapital + parseFloat(randomPnl)).toFixed(2);
     
-    // स्क्रीन पर वैल्यू को अपडेट करना
     let pnlElement = document.getElementById("live-pnl");
     let balElement = document.getElementById("live-balance");
     
@@ -125,7 +156,6 @@ setInterval(function() {
     }
     balElement.innerHTML = "₹" + currentBalance;
 
-    // टेबल के अंदर डमी लाइव आर्डर इंजेक्ट करना
     let now = new Date().toLocaleTimeString();
     let orderBody = document.getElementById("live-orders-body");
     orderBody.innerHTML = `
@@ -138,9 +168,9 @@ setInterval(function() {
             <td class="text-success fw-bold">₹3,000.00</td>
         </tr>
     `;
-}, 2000); // हर 2 सेकंड में बदलाव
+}, 2000);
 </script>
 
 </body>
-            </html>
-    
+                    </html>
+                    
