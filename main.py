@@ -319,7 +319,10 @@ def robot_heartbeat_siren():
 anti_sleep_thread = threading.Thread(target=robot_heartbeat_siren, daemon=True)
 anti_sleep_thread.start()
 
-# ⚡ फिक्स किया हुआ डमी टेस्ट बटन रूट (ताकि मेमोरी कभी क्रैश या डिलीट न हो)
+# ⚡ 
+        png" style="background-color: #21262d; color: white; border: 1px solid #30363d; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none;">📊 Live Paper Trading</a>
+            </div>
+            """फिक्स किया हुआ डमी टेस्ट बटन रूट (ताकि मेमोरी कभी क्रैश या डिलीट न हो)
 @app.route('/trigger-test-trade/<direction>')
 def trigger_test_trade(direction):
     """नीरज भाई की चेकिंग के लिए फिक्स लाइव आकार आंदोलन जनरेटर"""
@@ -348,8 +351,7 @@ def trigger_test_trade(direction):
         
         current_balance = 1000.00 - 150.00
         net_pnl = 45.00
-        
-        paper_orders.append({
+        aper_orders.append({
             "time": time.strftime("%I:%M %p"),
             "index": "BANKNIFTY",
             "type": "BUY CALL 📈",
@@ -376,9 +378,7 @@ def inject_clean_menu(response):
             custom_menu = """
             <div style="display: flex; justify-content: center; gap: 10px; background: #1f242c; padding: 15px; border-bottom: 1px solid #30363d; font-family: Arial, sans-serif;">
                 <button onclick="var p=prompt('🚨 सुरक्षा कोड दर्ज करें:'); if(p==='NEERAJ_KING_SHIELD_2026'){ fetch('/set-mode/REAL'); alert('🏦 Live mode activated!'); } else { alert('❌ Wrong code!'); }" style="background-color: #238636; color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer;">🏦 Live Demat Account</button>
-                <a href="/paper-trading" style="background-color: #21262d; color: white; border: 1px solid #30363d; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none;">📊 Live Paper Trading</a>
-            </div>
-            """
+                <a href="/paper-tradi
             body_tag = "<body>" if "<body>" in html_content else "<body"
             if body_tag in html_content and "Live Paper Trading" not in html_content:
                 if body_tag == "<body>":
