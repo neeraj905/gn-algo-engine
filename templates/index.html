@@ -9,56 +9,53 @@
     <style>
         body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; }
         .master-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .stat-grid { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 15px; }
-
-        /* 🎛️ कल वाला आपका असली वर्किंग टॉगल बटन स्टाइल */
-        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 50px; padding: 12px 25px; cursor: pointer; user-select: none; transition: 0.3s; }
-        .toggle-label { font-size: 1.1rem; font-weight: bold; }
-        .switch-track { width: 70px; height: 34px; background: #21262d; border-radius: 20px; position: relative; border: 1px solid #30363d; transition: 0.3s; }
-        .switch-nob { width: 26px; height: 26px; border-radius: 50px; position: absolute; top: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        
-        /* कल वाले कोड का असली ON/OFF विजुअल स्टेटस */
-        .status-on .switch-track { background: rgba(46, 164, 79, 0.2); border-color: #2ea44f; }
-        .status-on .switch-nob { left: 38px; background: #2ea44f; box-shadow: 0 0 10px #2ea44f; }
-        .status-on .toggle-label { color: #2ea44f; }
-
-        .status-off .switch-track { background: rgba(218, 54, 55, 0.2); border-color: #da3637; }
-        .status-off .switch-nob { left: 4px; background: #da3637; box-shadow: 0 0 10px #da3637; }
-        .status-off .toggle-label { color: #da3637; }
-
+        .stat-grid { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
+        .stat-grid:last-child { margin-bottom: 0; }
         .position-row { border-bottom: 1px solid #21262d; padding: 12px 0; }
         .position-row:last-child { border-bottom: none; }
+        
+        /* 🎛️ बूटस्ट्रैप स्टाइल का कड़क टॉगल स्विच बॉक्स */
+        .custom-switch-box { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 15px 20px; }
+        .form-switch .form-check-input { width: 3.5em; height: 1.8em; cursor: pointer; }
+        .form-switch .form-check-input:checked { background-color: #2ea44f; border-color: #2ea44f; }
     </style>
 </head>
 <body>
 
-<div class="container my-4">
-    <!-- टॉप हेडर बेल्ट -->
+<div class="container my-3">
+    <!-- टॉप हेडर -->
     <div class="d-flex align-items-center justify-content-between mb-4">
         <h4 class="m-0 fw-bold text-white">🤖 KING SHIELD DASHBOARD</h4>
-        <span class="badge bg-success">● DEMO LIVE MODE</span>
+        <span class="badge bg-secondary">● DEMO LIVE MODE</span>
     </div>
 
-    <!-- 🎛️ मास्टर ऑन/ऑफ स्विच (वही कल वाला असली वर्किंग बटन) -->
+    <!-- 🎛️ मास्टर स्विच (वही कल वाला असली इनपुट स्विच जो काम करेगा) -->
     <div class="master-box py-3">
-        <div id="robot-toggle-row" class="toggle-container status-on" onclick="handleToggleClick()">
-            <span id="toggle-text" class="toggle-label">⚡ ROBOT STATUS: ACTIVE (ON)</span>
-            <div class="switch-track">
-                <div id="switch-circle" class="switch-nob">ON</div>
+        <div class="custom-switch-box">
+            <span id="toggle-label-text" class="fw-bold text-success fs-5">⚡ ROBOT STATUS: ACTIVE (ON)</span>
+            <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" id="robotMasterSwitch" checked onchange="toggleRobotEngine(this)">
             </div>
         </div>
     </div>
 
-    <!-- 📊 मुख्य 3-कॉलम ग्रिड डैशबोर्ड -->
+    <!-- 📊 मुख्य ग्रिड (Starting Capital, P&L, Balance) -->
     <div class="master-box">
-        <div class="row text-center g-2">
-            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Starting Capital:</small><span class="fw-bold text-primary fs-6">₹3000.00</span></div></div>
-            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Total P&L:</small><span id="live-pnl" class="fw-bold text-success fs-6">₹0.00</span></div></div>
-            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Current Balance:</small><span id="live-balance" class="fw-bold text-success fs-6">₹3000.00</span></div></div>
+        <div class="stat-grid">
+            <small class="text-secondary d-block">Starting Capital:</small>
+            <span class="fw-bold text-primary fs-6">₹3000.00</span>
+        </div>
+        <div class="stat-grid">
+            <small class="text-secondary d-block">Total P&L:</small>
+            <span id="live-pnl" class="fw-bold text-success fs-6">₹0.00</span>
+        </div>
+        <div class="stat-grid">
+            <small class="text-secondary d-block">Current Balance:</small>
+            <span id="live-balance" class="fw-bold text-success fs-6">₹3000.00</span>
         </div>
     </div>
 
-    <!-- 🎯 LIVE POSITIONS CARD (5 इंडेक्स) -->
+    <!-- 🎯 LIVE POSITIONS CARD (भारत के सभी 5 मुख्य इंडेक्स बिल्कुल साफ़ नाम के साथ) -->
     <h6 class="text-warning fw-bold mb-2 font-monospace">🎯 LIVE OPEN POSITIONS (All India Indices)</h6>
     <div class="master-box py-2">
         <div class="position-row d-flex justify-content-between align-items-center">
@@ -83,58 +80,53 @@
         </div>
     </div>
 
-    <!-- 📋 आदेशों की लाइव ग्रिड टेबल -->
+    <!-- 📋 लाइव आर्डर हिस्ट्री टेबल -->
     <h6 class="text-success fw-bold mb-2 font-monospace">📋 LIVE ORDER HISTORY</h6>
     <div class="master-box p-0 overflow-hidden">
         <div class="table-responsive">
             <table class="table table-dark table-striped m-0 align-middle text-center">
                 <thead>
                     <tr class="text-success" style="border-bottom: 2px solid #30363d;">
-                        <th>Time</th><th>Index Name</th><th>Type</th><th>Input (Option)</th><th>Shares</th><th>Net P&L</th>
+                        <th>Time</th><th>Index Name</th><th>Type</th><th>Input</th><th>Net P&L</th>
                     </tr>
                 </thead>
                 <tbody id="live-orders-body">
-                    <tr><td colspan="6" class="py-4 text-secondary">डेटा लोड हो रहा है...</td></tr>
+                    <tr><td colspan="5" class="py-4 text-secondary">डेटा पाइपलाइन कनेक्ट हो रही है...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- 🟢 कल वाली असली स्क्रिप्ट फ़ाइलें -->
+<!-- 🟢 बूटस्ट्रैप ओरिजिनल स्क्रिप्ट -->
 <script src="https://jsdelivr.net"></script>
 
 <script>
-let robotActive = true; 
+let robotActive = true;
 
-// 🎛️ कल वाला असली वर्किंग स्विच फंक्शन
-function handleToggleClick() {
-    let row = document.getElementById("robot-toggle-row");
-    let text = document.getElementById("toggle-text");
-    let circle = document.getElementById("switch-circle");
-    
-    if (robotActive) {
-        robotActive = false;
-        row.className = "toggle-container status-off";
-        text.innerHTML = "🛑 ROBOT STATUS: PAUSED (OFF)";
-        circle.innerHTML = "OFF";
-    } else {
+// 🎛️ कल वाला असली वर्किंग स्विच ऑन/ऑफ फंक्शन
+function toggleRobotEngine(checkbox) {
+    let label = document.getElementById("toggle-label-text");
+    if (checkbox.checked) {
         robotActive = true;
-        row.className = "toggle-container status-on";
-        text.innerHTML = "⚡ ROBOT STATUS: ACTIVE (ON)";
-        circle.innerHTML = "ON";
+        label.innerHTML = "⚡ ROBOT STATUS: ACTIVE (ON)";
+        label.className = "fw-bold text-success fs-5";
+    } else {
+        robotActive = false;
+        label.innerHTML = "🛑 ROBOT STATUS: PAUSED (OFF)";
+        label.className = "fw-bold text-danger fs-5";
     }
 }
 
-// 🔄 लाइव रनिंग डेमो इंजन (5 इंडेक्स)
+// 🔄 5-इंडेक्स लाइव लाइव रनिंग इंजन 
 setInterval(function() {
-    if (!robotActive) return; 
+    if (!robotActive) return; // ऑफ होने पर डेटा फ्रीज!
     
-    let nP = parseFloat((Math.random() * 150 - 50).toFixed(2));
-    let bP = parseFloat((Math.random() * 200 - 100).toFixed(2));
-    let fP = parseFloat((Math.random() * 100 - 30).toFixed(2));
-    let mP = parseFloat((Math.random() * 80 - 20).toFixed(2));
-    let sP = parseFloat((Math.random() * 300 - 80).toFixed(2));
+    let nP = parseFloat((Math.random() * 160 - 60).toFixed(2));
+    let bP = parseFloat((Math.random() * 240 - 120).toFixed(2));
+    let fP = parseFloat((Math.random() * 110 - 40).toFixed(2));
+    let mP = parseFloat((Math.random() * 90 - 30).toFixed(2));
+    let sP = parseFloat((Math.random() * 350 - 100).toFixed(2));
     
     let totalPnl = (nP + bP + fP + mP + sP).toFixed(2);
     let currentBalance = (3000 + parseFloat(totalPnl)).toFixed(2);
@@ -157,5 +149,11 @@ setInterval(function() {
 
     let now = new Date().toLocaleTimeString();
     document.getElementById("live-orders-body").innerHTML = `
-        <tr><td>${now}</td><td><span class="badge bg-primary">NIFTY 50</span></td><td><span class="badge bg-success">BUY</span></td><td class="text-warning fw-bold">24250 CE</td><td>50</td><td class="${nP>=0?'text-success':'text-danger'} fw-bold">₹${nP}</td></tr>
-                    
+        <tr><td>${now}</td><td><span class="badge bg-primary">NIFTY 50</span></td><td><span class="badge bg-success">BUY</span></td><td class="text-warning fw-bold">24250 CE</td><td class="${nP>=0?'text-success':'text-danger'} fw-bold">₹${nP}</td></tr>
+        <tr><td>${now}</td><td><span class="badge bg-danger">SENSEX</span></td><td><span class="badge bg-success">BUY</span></td><td class="text-warning fw-bold">80300 CE</td><td class="${sP>=0?'text-success':'text-danger'} fw-bold">₹${sP}</td></tr>
+    `;
+}, 2000);
+</script>
+</body>
+    </html>
+    
