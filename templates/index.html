@@ -4,32 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KING SHIELD ULTRA v2.0</title>
-    <!-- 🟢 कड़क बूटस्ट्रैप लिंक - जिससे पूरा नक्शा और बटन परफेक्ट काम करेगा -->
+    <!-- 🟢 कड़क ओरिजिनल बूटस्ट्रैप CSS -->
     <link rel="stylesheet" href="https://jsdelivr.net">
     <style>
         body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; }
         .master-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .menu-btn { font-size: 24px; color: #2ea44f; background: none; border: none; cursor: pointer; float: left; }
-        .sidebar { height: 100%; width: 0; position: fixed; z-index: 9999; top: 0; left: 0; background-color: #161b22; overflow-x: hidden; transition: 0.3s; padding-top: 60px; border-right: 1px solid #30363d; }
-        .sidebar a { padding: 15px 25px; text-decoration: none; font-size: 18px; color: #c9d1d9; display: block; font-weight: bold; }
-        .sidebar a:hover { background-color: #21262d; color: #58a6ff; }
-        .sidebar .closebtn { position: absolute; top: 10px; right: 25px; font-size: 36px; color: #f85149; }
-        .nav-toggle-btn { background: #21262d; border: 1px solid #30363d; padding: 10px; border-radius: 6px; color: #fff; font-weight: bold; }
-        .active-tab { background: #2ea44f !important; border-color: #2ea44f !important; }
         .stat-grid { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 15px; }
 
-        /* 🎛️ परफेक्ट 3D सरकने वाला ON/OFF स्विच */
+        /* 🎛️ कल वाला आपका असली वर्किंग टॉगल बटन स्टाइल */
         .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 50px; padding: 12px 25px; cursor: pointer; user-select: none; transition: 0.3s; }
-        .toggle-label { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.5px; }
+        .toggle-label { font-size: 1.1rem; font-weight: bold; }
         .switch-track { width: 70px; height: 34px; background: #21262d; border-radius: 20px; position: relative; border: 1px solid #30363d; transition: 0.3s; }
         .switch-nob { width: 26px; height: 26px; border-radius: 50px; position: absolute; top: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         
-        /* ऑन और ऑफ की कड़क विजुअल स्टाइलिंग */
-        .status-on .switch-track { background: rgba(46, 164, 79, 0.15); border-color: #2ea44f; }
+        /* कल वाले कोड का असली ON/OFF विजुअल स्टेटस */
+        .status-on .switch-track { background: rgba(46, 164, 79, 0.2); border-color: #2ea44f; }
         .status-on .switch-nob { left: 38px; background: #2ea44f; box-shadow: 0 0 10px #2ea44f; }
         .status-on .toggle-label { color: #2ea44f; }
-        
-        .status-off .switch-track { background: rgba(218, 54, 55, 0.15); border-color: #da3637; }
+
+        .status-off .switch-track { background: rgba(218, 54, 55, 0.2); border-color: #da3637; }
         .status-off .switch-nob { left: 4px; background: #da3637; box-shadow: 0 0 10px #da3637; }
         .status-off .toggle-label { color: #da3637; }
 
@@ -39,21 +32,14 @@
 </head>
 <body>
 
-<div id="kingSidebar" class="sidebar">
-    <a href="javascript:void(0)" class="closebtn" onclick="closeKingMenu()">&times;</a>
-    <a href="/">📊 मुख्य लाइव चार्ट्स</a>
-    <a href="/paper-trading">📈 लाइव पेपर ट्रेडिंग (₹3000)</a>
-</div>
-
-<div class="container my-3">
-    <!-- 🛡️ टॉप हेडर बेल्ट -->
+<div class="container my-4">
+    <!-- टॉप हेडर बेल्ट -->
     <div class="d-flex align-items-center justify-content-between mb-4">
-        <button class="menu-btn" onclick="openKingMenu()">☰</button>
         <h4 class="m-0 fw-bold text-white">🤖 KING SHIELD DASHBOARD</h4>
-        <span class="badge bg-success">● DEMO MODE ACTIVE</span>
+        <span class="badge bg-success">● DEMO LIVE MODE</span>
     </div>
 
-    <!-- 🎛️ MASTER ON/OFF TOGGLE SWITCH -->
+    <!-- 🎛️ मास्टर ऑन/ऑफ स्विच (वही कल वाला असली वर्किंग बटन) -->
     <div class="master-box py-3">
         <div id="robot-toggle-row" class="toggle-container status-on" onclick="handleToggleClick()">
             <span id="toggle-text" class="toggle-label">⚡ ROBOT STATUS: ACTIVE (ON)</span>
@@ -63,31 +49,16 @@
         </div>
     </div>
 
-    <!-- 📊 पुराना सुंदर 3-कॉलम ग्रिड डैशबोर्ड वापस आ गया -->
+    <!-- 📊 मुख्य 3-कॉलम ग्रिड डैशबोर्ड -->
     <div class="master-box">
         <div class="row text-center g-2">
-            <div class="col-4">
-                <div class="stat-grid">
-                    <small class="text-secondary d-block">Starting Capital:</small>
-                    <span class="fw-bold text-primary fs-6">₹3000.00</span>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="stat-grid">
-                    <small class="text-secondary d-block">Total P&L:</small>
-                    <span id="live-pnl" class="fw-bold text-success fs-6">₹0.00</span>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="stat-grid">
-                    <small class="text-secondary d-block">Current Balance:</small>
-                    <span id="live-balance" class="fw-bold text-success fs-6">₹3000.00</span>
-                </div>
-            </div>
+            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Starting Capital:</small><span class="fw-bold text-primary fs-6">₹3000.00</span></div></div>
+            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Total P&L:</small><span id="live-pnl" class="fw-bold text-success fs-6">₹0.00</span></div></div>
+            <div class="col-4"><div class="stat-grid"><small class="text-secondary d-block">Current Balance:</small><span id="live-balance" class="fw-bold text-success fs-6">₹3000.00</span></div></div>
         </div>
     </div>
 
-    <!-- ⚡ TRADETRON STYLE: LIVE OPEN POSITIONS (5 इंडेक्स वार लाइव लोकेशन) -->
+    <!-- 🎯 LIVE POSITIONS CARD (5 इंडेक्स) -->
     <h6 class="text-warning fw-bold mb-2 font-monospace">🎯 LIVE OPEN POSITIONS (All India Indices)</h6>
     <div class="master-box py-2">
         <div class="position-row d-flex justify-content-between align-items-center">
@@ -112,38 +83,31 @@
         </div>
     </div>
 
-    <!-- 📋 आदेशों की असली लाइव ग्रिड टेबल -->
+    <!-- 📋 आदेशों की लाइव ग्रिड टेबल -->
     <h6 class="text-success fw-bold mb-2 font-monospace">📋 LIVE ORDER HISTORY</h6>
     <div class="master-box p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table table-dark table-striped m-0 align-middle text-center" style="border-collapse: collapse;">
+            <table class="table table-dark table-striped m-0 align-middle text-center">
                 <thead>
                     <tr class="text-success" style="border-bottom: 2px solid #30363d;">
-                        <th class="py-3">Time</th>
-                        <th class="py-3">Index Name</th>
-                        <th class="py-3">Type</th>
-                        <th class="py-3">Input (Option)</th>
-                        <th class="py-3">Shares</th>
-                        <th class="py-3">Net P&L</th>
+                        <th>Time</th><th>Index Name</th><th>Type</th><th>Input (Option)</th><th>Shares</th><th>Net P&L</th>
                     </tr>
                 </thead>
                 <tbody id="live-orders-body">
-                    <tr>
-                        <td colspan="6" class="py-5 text-secondary fs-6">डेटा पाइपलाइन कनेक्ट हो रही है...</td>
-                    </tr>
+                    <tr><td colspan="6" class="py-4 text-secondary">डेटा लोड हो रहा है...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<script>
-function openKingMenu() { document.getElementById("kingSidebar").style.width = "260px"; }
-function closeKingMenu() { document.getElementById("kingSidebar").style.width = "0"; }
+<!-- 🟢 कल वाली असली स्क्रिप्ट फ़ाइलें -->
+<script src="https://jsdelivr.net"></script>
 
+<script>
 let robotActive = true; 
 
-// 🎛️ परफेक्ट ऑन/ऑफ टॉगल लॉजिक (पूरा स्क्रिप्ट ब्लॉक सुरक्षित)
+// 🎛️ कल वाला असली वर्किंग स्विच फंक्शन
 function handleToggleClick() {
     let row = document.getElementById("robot-toggle-row");
     let text = document.getElementById("toggle-text");
@@ -162,14 +126,36 @@ function handleToggleClick() {
     }
 }
 
-// 🔄 5-इंडेक्स लाइव मेगा इंजन
+// 🔄 लाइव रनिंग डेमो इंजन (5 इंडेक्स)
 setInterval(function() {
-    if (!robotActive) return; // ऑफ होने पर डेटा यहीं फ्रीज हो जाएगा
+    if (!robotActive) return; 
     
-    let niftyPnl = parseFloat((Math.random() * 200 - 50).toFixed(2));
-    let bankPnl = parseFloat((Math.random() * 300 - 150).toFixed(2));
-    let finPnl = parseFloat((Math.random() * 150 - 30).toFixed(2));
-    let midPnl = parseFloat((Math.random() * 150 - 40).toFixed(2));
-    let sensexPnl = parseFloat((Math.random() * 400 - 100).toFixed(2));
+    let nP = parseFloat((Math.random() * 150 - 50).toFixed(2));
+    let bP = parseFloat((Math.random() * 200 - 100).toFixed(2));
+    let fP = parseFloat((Math.random() * 100 - 30).toFixed(2));
+    let mP = parseFloat((Math.random() * 80 - 20).toFixed(2));
+    let sP = parseFloat((Math.random() * 300 - 80).toFixed(2));
+    
+    let totalPnl = (nP + bP + fP + mP + sP).toFixed(2);
+    let currentBalance = (3000 + parseFloat(totalPnl)).toFixed(2);
+    
+    document.getElementById("nifty-pnl").innerHTML = (nP >= 0 ? "₹" : "-₹") + Math.abs(nP);
+    document.getElementById("nifty-pnl").className = nP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
+    document.getElementById("bank-pnl").innerHTML = (bP >= 0 ? "₹" : "-₹") + Math.abs(bP);
+    document.getElementById("bank-pnl").className = bP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
+    document.getElementById("fin-pnl").innerHTML = (fP >= 0 ? "₹" : "-₹") + Math.abs(fP);
+    document.getElementById("fin-pnl").className = fP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
+    document.getElementById("mid-pnl").innerHTML = (mP >= 0 ? "₹" : "-₹") + Math.abs(mP);
+    document.getElementById("mid-pnl").className = mP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
+    document.getElementById("sensex-pnl").innerHTML = (sP >= 0 ? "₹" : "-₹") + Math.abs(sP);
+    document.getElementById("sensex-pnl").className = sP >= 0 ? "fw-bold text-success" : "fw-bold text-danger";
 
-    
+    document.getElementById("live-pnl").innerHTML = (totalPnl >= 0 ? "₹" : "-₹") + Math.abs(totalPnl);
+    document.getElementById("live-pnl").className = totalPnl >= 0 ? "fw-bold text-success fs-6" : "fw-bold text-danger fs-6";
+    document.getElementById("live-balance").innerHTML = "₹" + currentBalance;
+    document.getElementById("live-balance").className = totalPnl >= 0 ? "fw-bold text-success fs-6" : "fw-bold text-danger fs-6";
+
+    let now = new Date().toLocaleTimeString();
+    document.getElementById("live-orders-body").innerHTML = `
+        <tr><td>${now}</td><td><span class="badge bg-primary">NIFTY 50</span></td><td><span class="badge bg-success">BUY</span></td><td class="text-warning fw-bold">24250 CE</td><td>50</td><td class="${nP>=0?'text-success':'text-danger'} fw-bold">₹${nP}</td></tr>
+                    
