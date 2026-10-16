@@ -584,8 +584,11 @@ def receive_test_signal():
     is_feed_active = True
     print("🚀 लाइव टेस्ट सिग्नल प्राप्त हुआ! पेपर ट्रेडिंग इंजन चालू हो चुका है।")
     return {"status": "Trade Signal Received", "success": True}
-            
 
+    is_feed_active = True
+    print("🚀 लाइव टेस्ट सिग्नल प्राप्त हुआ! पेपर ट्रेडिंग इंजन चालू हो चुका है।")
+    return {"status": "Trade Signal Received", "success": True}
+    
 
 if __name__ == '__main__':
     # रेंडर पोर्ट को ऑटोमैटिक पकड़ने के लिए सेटिंग
