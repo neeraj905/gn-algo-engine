@@ -14,10 +14,22 @@
         .position-row { border-bottom: 1px solid #21262d; padding: 12px 0; }
         .position-row:last-child { border-bottom: none; }
         
-        /* 🎛️ बूटस्ट्रैप स्टाइल का कड़क टॉगल स्विच बॉक्स */
-        .custom-switch-box { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 15px 20px; }
-        .form-switch .form-check-input { width: 3.5em; height: 1.8em; cursor: pointer; }
-        .form-switch .form-check-input:checked { background-color: #2ea44f; border-color: #2ea44f; }
+        /* 🎛️ असली विजुअल टॉगल स्विच की स्टाइलिंग */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #0d1117; border: 1px solid #30363d; border-radius: 50px; padding: 10px 25px; cursor: pointer; user-select: none; transition: all 0.3s ease; }
+        .toggle-label { font-size: 1.1rem; font-weight: bold; letter-spacing: 0.5px; }
+
+        .switch-track { width: 70px; height: 34px; background: #21262d; border-radius: 20px; position: relative; border: 1px solid #30363d; transition: 0.3s; }
+        .switch-nob { width: 26px; height: 26px; background: #8b949e; border-radius: 50px; position: absolute; top: 3px; left: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: white; transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        
+        /* ON स्टेट का लुक */
+        .status-on .switch-track { background: rgba(46, 164, 79, 0.15); border-color: #2ea44f; }
+        .status-on .switch-nob { left: 38px; background: #2ea44f; box-shadow: 0 0 10px #2ea44f; }
+        .status-on .toggle-label { color: #2ea44f; }
+
+        /* OFF स्टेट का लुक */
+        .status-off .switch-track { background: rgba(218, 54, 55, 0.15); border-color: #da3637; }
+        .status-off .switch-nob { left: 4px; background: #da3637; box-shadow: 0 0 10px #da3637; }
+        .status-off .toggle-label { color: #da3637; }
     </style>
 </head>
 <body>
@@ -29,12 +41,12 @@
         <span class="badge bg-secondary">● DEMO LIVE MODE</span>
     </div>
 
-    <!-- 🎛️ मास्टर स्विच (वही कल वाला असली इनपुट स्विच जो काम करेगा) -->
+    <!-- 🎛️ MASTER ON/OFF TOGGLE SWITCH (असली 3D गोल बटन) -->
     <div class="master-box py-3">
-        <div class="custom-switch-box">
-            <span id="toggle-label-text" class="fw-bold text-success fs-5">⚡ ROBOT STATUS: ACTIVE (ON)</span>
-            <div class="form-check form-switch m-0">
-                <input class="form-check-input" type="checkbox" id="robotMasterSwitch" checked onchange="toggleRobotEngine(this)">
+        <div id="robot-toggle-row" class="toggle-container status-on" onclick="handleToggleClick()">
+            <span id="toggle-text" class="toggle-label">⚡ ROBOT STATUS: ACTIVE (ON)</span>
+            <div class="switch-track">
+                <div id="switch-circle" class="switch-nob">ON</div>
             </div>
         </div>
     </div>
@@ -104,19 +116,24 @@
 <script>
 let robotActive = true;
 
-// 🎛️ कल वाला असली वर्किंग स्विच ऑन/ऑफ फंक्शन
-function toggleRobotEngine(checkbox) {
-    let label = document.getElementById("toggle-label-text");
-    if (checkbox.checked) {
-        robotActive = true;
-        label.innerHTML = "⚡ ROBOT STATUS: ACTIVE (ON)";
-        label.className = "fw-bold text-success fs-5";
-    } else {
+// 🎛️ क्लिक करने पर स्विच को विजुअली खिसकाने और रंग बदलने का लॉजिक
+function handleToggleClick() {
+    let row = document.getElementById("robot-toggle-row");
+    let text = document.getElementById("toggle-text");
+        let circle = document.getElementById("switch-circle");
+            
+    if (robotActive) {
         robotActive = false;
-        label.innerHTML = "🛑 ROBOT STATUS: PAUSED (OFF)";
-        label.className = "fw-bold text-danger fs-5";
-    }
-}
+        row.className = "toggle-container status-off";
+        text.innerHTML = "🛑 ROBOT STATUS: PAUSED (OFF)";
+        circle.innerHTML = "OFF";
+     } else {
+         robotActive = true;
+         row.className = "toggle-container status-on";
+         text.innerHTML = "⚡ ROBOT STATUS: ACTIVE (ON)";
+        circle.innerHTML = "ON";
+    } 
+ }
 
 // 🔄 5-इंडेक्स लाइव लाइव रनिंग इंजन 
 setInterval(function() {
