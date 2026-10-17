@@ -319,9 +319,13 @@ def robot_heartbeat_siren():
 anti_sleep_thread = threading.Thread(target=robot_heartbeat_siren, daemon=True)
 anti_sleep_thread.start()
 
-# ⚡ 
-        png" style="background-color: #21262d; color: white; border: 1px solid #30363d; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; text-decoration: none;">📊 Live Paper Trading</a>
-            </div>
+320 anti_sleep_thread.start()
+321 
+322 """फिक्स किया हुआ डमी टेस्ट बटन रूट (ताकि मेमोरी कभी क्रैश या डिलीट न हो)"""
+323 @app.route('/trigger-test-trade/<direction>')
+324 def trigger_test_trade(direction):
+325     """नीरज भाई की चेकिंग के लिए फिक्स लाइव आकार आंदोलन जनरेटर"""
+326     global current_balance, net_pnl, paper_orders
             """फिक्स किया हुआ डमी टेस्ट बटन रूट (ताकि मेमोरी कभी क्रैश या डिलीट न हो)
 @app.route('/trigger-test-trade/<direction>')
 def trigger_test_trade(direction):
